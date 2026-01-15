@@ -1,6 +1,6 @@
 ## Hitboxer 2.0 — Sprite Sheet hitbox creation tool.
 
-Hitboxer is a desktop tool built with Electron, React, and TypeScript designed for artists, developers, and modders who need a fast, clean way to create hitboxes, edit them with an abundance of stats & data, and export results as a JSON file ready to be parsed by a game engine.
+Hitboxer is a desktop tool built with Electron, SvelteKit, and TypeScript designed for artists, developers, and modders who need a fast, clean way to create hitboxes, edit them with an abundance of stats & data, and export results as a JSON file ready to be parsed by a game engine.
 
 It supports independent scrolling panels, color-coded metadata, dynamic UI scaling, a buttload of settings, and a focused layout for productivity.
 
