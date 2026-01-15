@@ -66,7 +66,7 @@
 {#if loadLaunchScreen == 'launchScreen'}
 	<LaunchScreen {imgPath} {filePath} {handleOpen} {handleClose} {setScreen} />
 {:else if loadLaunchScreen == 'hitboxEditorScreen'}
-	<EditorScreen {filePath} {setScreen} />
+	<EditorScreen {imgPath} {filePath} {setScreen} />
 {:else if loadLaunchScreen == 'formatJsonScreen'}
 	<!-- Format JSON Screen Component Here -->
 {/if}

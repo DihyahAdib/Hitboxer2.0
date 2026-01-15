@@ -50,7 +50,7 @@
 	<div class="content-bar">
 		<div class="socials">
 			<a
-				href="https://github.com/NoCapStudios"
+				href="https://github.com/DihyahAdib/Hitboxer2.0"
 				target="_blank"
 				rel="noopener noreferrer"
 				class="social-link"
@@ -77,7 +77,16 @@
 				<Youtube size={20} />
 			</a>
 		</div>
-		<span class="version">Version: 2.0.1 (Pre-Alpha)</span>
+		{#if filePath}
+			<div class="filepath-wrap">
+				<p class="filepath">File: {filePath}</p>
+			</div>
+		{:else}
+			<div class="filepath-wrap">
+				<p class="filepath muted">No Image Selected...</p>
+			</div>
+		{/if}
+		<span class="version">Version: 2.0.0x (Pre-Alpha)</span>
 	</div>
 </div>
 
@@ -162,11 +171,11 @@
 	}
 
 	img {
-		max-width: 100%;
-		max-height: 300px;
+		width: 90%;
 		border-radius: 12px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		box-shadow: 1px 1px 10px 10px #3341555c;
 		margin-bottom: 1rem;
+		image-rendering: pixelated;
 	}
 
 	.editor-btn {
@@ -207,8 +216,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		width: 90%;
-		max-width: 700px;
+		width: 95%;
+		max-width: 900px;
 		padding: 1rem 1.5rem;
 		background: rgba(255, 255, 255, 0.95);
 		backdrop-filter: blur(10px);
@@ -245,5 +254,29 @@
 		font-size: 0.875rem;
 		color: #64748b;
 		font-weight: 500;
+	}
+
+	.filepath {
+		max-width: 100%;
+		white-space: nowrap;
+		overflow: hidden;
+
+		/* bilateral fade */
+		-webkit-mask-image: linear-gradient(
+			to right,
+			transparent 0%,
+			black 12%,
+			black 88%,
+			transparent 100%
+		);
+		mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+
+		font-size: 0.875rem;
+		color: #64748b;
+		font-weight: 500;
+	}
+
+	.filepath.muted {
+		opacity: 0.7;
 	}
 </style>

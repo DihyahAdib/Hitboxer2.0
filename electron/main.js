@@ -55,8 +55,19 @@ function createMenu(mainWindow) {
 					click: () => {
 						mainWindow.webContents.send('menu:go-hitbox-editor');
 					}
+				},
+				{
+					label: 'JSON configs',
+					accelerator: 'CmdOrCtrl+2',
+					click: () => {
+						mainWindow.webContents.send('menu:go-json-editor');
+					}
 				}
 			]
+		},
+		{
+			label: 'Settings',
+			submenu: []
 		},
 		{
 			label: 'Help',
