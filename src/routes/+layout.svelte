@@ -118,9 +118,9 @@
 		height: 100vh;
 	}
 
-	.app-content.with-animation {
+	/* .app-content.with-animation {
 		/* Content is on launch screen - no background needed */
-	}
+	
 
 	.app-content:not(.with-animation) {
 		/* Content is on editor - add white background */

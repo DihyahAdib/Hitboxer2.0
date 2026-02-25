@@ -92,7 +92,8 @@ function createWindow() {
 	});
 
 	if (isDev) {
-		mainWindow.loadURL('http://localhost:5173');
+		// match the port configured in vite.config.ts
+		mainWindow.loadURL('http://localhost:5174');
 		mainWindow.webContents.openDevTools();
 	} else {
 		mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
