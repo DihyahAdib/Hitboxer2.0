@@ -1,176 +1,130 @@
 <script lang="ts">
-	type ImgDim = {
-		width: number;
-		height: number;
-	};
+	import { FlipHorizontal, FlipVertical } from 'lucide-svelte';
 
 	let {
 		imgPath,
-		filePath,
-		imgSize,
 		scale,
 		flipX,
 		flipY,
 		setScale,
 		setFlipX,
 		setFlipY,
-		setImageDIM,
 		handleImageDefaultSize,
 		setScreen
-	}: {
-		imgPath: string | null;
-		filePath: string | null;
-		imgSize: ImgDim;
-		scale: number;
-		flipX: boolean;
-		flipY: boolean;
-		setScale: (val: number) => void;
-		setFlipX: (val: boolean) => void;
-		setFlipY: (val: boolean) => void;
-		setImageDIM: (dim: ImgDim) => void;
-		handleImageDefaultSize: (e: Event) => void;
-		setScreen: () => void;
 	} = $props();
 
-	let inputScale = $state(scale);
+	let inputScale = $state(1);
 
-	// keep local input in sync when external scale changes
 	$effect(() => {
-		if (scale !== inputScale) inputScale = scale;
+		inputScale = scale;
 	});
 
-	function applyScale() {
+	$effect(() => {
 		setScale(inputScale);
-	}
-
-	function toggleFlipX() {
-		setFlipX(!flipX);
-	}
-
-	function toggleFlipY() {
-		setFlipY(!flipY);
-	}
+	});
 </script>
 
-<div class="editor-screen">
-	<div class="top-panel">
-		{#if filePath}
-			<p class="file-path">File: {filePath}</p>
-		{/if}
+<div class="editor-root">
+	<div class="toolbar">
+		<button onclick={setScreen}>←</button>
+
+		<label for="scale-input">Scale</label>
+		<input
+			id="scale-input"
+			type="number"
+			step="0.1"
+			min="0.1"
+			bind:value={inputScale}
+		/>
+
+		<button class:active={flipX} onclick={() => setFlipX(!flipX)}>
+			<FlipHorizontal size={18} />
+		</button>
+
+		<button class:active={flipY} onclick={() => setFlipY(!flipY)}>
+			<FlipVertical size={18} />
+		</button>
 	</div>
 
-	<div class="main-editor">
-		<div class="button-panel">
-			<label for="scale">Scale</label>
-			<input
-				id="scale"
-				type="number"
-				min="0.1"
-				step="0.1"
-				bind:value={inputScale}
-				onchange={applyScale}
-			/>
-			<button onclick={applyScale}>Apply</button>
-			<hr />
-			<button onclick={toggleFlipX} class:active={flipX}>Flip H</button>
-			<button onclick={toggleFlipY} class:active={flipY}>Flip V</button>
-		</div>
-
-		<div class="image-viewer">
-			{#if imgPath}
+	<div class="canvas">
+		{#if imgPath}
+			<div
+				class="image-wrapper"
+				style="
+					transform:
+						scale({flipX ? -scale : scale}, {flipY ? -scale : scale});
+				"
+			>
 				<img
 					src={imgPath}
-					class="image"
+					alt="Selected sprite asset"
 					onload={handleImageDefaultSize}
 					draggable="false"
-					alt="Loaded"
-					style="transform: scale({flipX ? -scale : scale}, {flipY ? -scale : scale});"
 				/>
-			{/if}
-		</div>
+			</div>
+		{/if}
 	</div>
 </div>
 
 <style>
-	.editor-screen {
-		height: 100%;
-		margin: 0px;
-		padding: 0px;
+	.editor-root {
 		display: grid;
-		grid-template-rows: 8% auto;
+		grid-template-columns: 80px 1fr;
+		height: 100vh;
+		background: #0f172a;
+		color: white;
+		overflow: hidden;
 	}
 
-	.top-panel {
+	.toolbar {
+		background: #111827;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 1rem 0.5rem;
+		gap: 0.75rem;
+		border-right: 1px solid #1f2937;
+		box-sizing: border-box;
+	}
+
+	.toolbar input {
+		width: 60px;
+		max-width: 100%;
+		box-sizing: border-box;
 		text-align: center;
 	}
 
-	.file-path {
-		color: rgb(246, 228, 206);
+	.toolbar button {
+		background: #1f2937;
+		border: none;
+		color: white;
+		border-radius: 10px;
+		width: 40px;
+		height: 40px;
+		cursor: pointer;
 	}
 
-	.main-editor {
-		height: 100%;
-		margin: 0px;
-		padding: 0px;
-		display: grid;
-		grid-template-columns: 10% auto;
+	.toolbar button.active {
+		background: linear-gradient(135deg, #305e49, #4b8fa2);
 	}
 
-	.image-viewer {
-		position: relative;
-		width: auto;
-		flex: none;
+	.canvas {
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		z-index: 0;
 		overflow: auto;
-		margin: 0.5rem;
-		text-align: center;
-		border: thick solid #305e49;
-		border-radius: 12px;
+		position: relative;
+	}
+
+	.image-wrapper {
+		transform-origin: center center;
+		display: inline-block;
 	}
 
 	img {
-		border-radius: 12px;
-		margin-bottom: 1rem;
+		display: block;
 		image-rendering: pixelated;
-		transform-origin: center center;
-	}
-
-	.button-panel {
-		display: flex;
-		flex-direction: column;
-		justify-content: flex-start;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.button-panel input[type="number"] {
-		width: 60px;
-		text-align: center;
-	}
-
-	.button-panel hr {
-		width: 80%;
-		border: none;
-		border-top: 1px solid #ccc;
-		margin: 0.5rem 0;
-	}
-
-	.button-panel button.active {
-		background-color: #4b8fa2;
-		color: white;
-	}
-
-	button {
-		width: 50%;
-		height: 5%;
-		margin: 6px 10px;
-		padding: 8px;
-		cursor: pointer;
-		border: none;
-		border-radius: 14px;
-		background-color: rgb(111, 181, 158);
+		user-select: none;
+		pointer-events: none;
 	}
 </style>

@@ -120,13 +120,10 @@ function setFlipY(val: boolean) {
 {:else if loadLaunchScreen == 'hitboxEditorScreen'}
 	<EditorScreen
 		{imgPath}
-		{filePath}
-		{imgSize}
 		{scale}
 		{flipX}
 		{flipY}
 		{setScreen}
-		{setImageDIM}
 		{handleImageDefaultSize}
 		{setScale}
 		{setFlipX}
