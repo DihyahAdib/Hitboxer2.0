@@ -67,7 +67,17 @@ function createMenu(mainWindow) {
 		},
 		{
 			label: 'Settings',
-			submenu: []
+			submenu: [
+				{
+					label: 'Toggle Fullscreen',
+					accelerator: 'F11',
+					click: () => {
+						const isFullscreen = mainWindow.isFullScreen();
+						mainWindow.setFullScreen(!isFullscreen);
+						mainWindow.webContents.send('menu:fullscreen-changed', !isFullscreen);
+					}
+				}
+			]
 		},
 		{
 			label: 'Help',
@@ -92,7 +102,6 @@ function createWindow() {
 	});
 
 	if (isDev) {
-		// match the port configured in vite.config.ts
 		mainWindow.loadURL('http://localhost:5174');
 		mainWindow.webContents.openDevTools();
 	} else {
@@ -109,6 +118,20 @@ function createWindow() {
 		} else {
 			Menu.setApplicationMenu(null);
 		}
+	});
+
+	ipcMain.on('toggle-fullscreen', () => {
+		const isFullscreen = mainWindow.isFullScreen();
+		mainWindow.setFullScreen(!isFullscreen);
+		mainWindow.webContents.send('menu:fullscreen-changed', !isFullscreen);
+	});
+
+	mainWindow.on('enter-full-screen', () => {
+		mainWindow.webContents.send('menu:fullscreen-changed', true);
+	});
+
+	mainWindow.on('leave-full-screen', () => {
+		mainWindow.webContents.send('menu:fullscreen-changed', false);
 	});
 }
 

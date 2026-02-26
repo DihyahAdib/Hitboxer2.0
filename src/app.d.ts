@@ -16,6 +16,10 @@ declare global {
 			onGoHitboxEditor: (callback: (event: unknown, ...args: unknown[]) => void) => void;
 			offGoHitboxEditor: (callback: (event: unknown, ...args: unknown[]) => void) => void;
 
+			toggleFullscreen: () => void;
+			onFullscreenChanged: (callback: (event: unknown, isFullscreen: boolean) => void) => void;
+			offFullscreenChanged: (callback: (event: unknown, isFullscreen: boolean) => void) => void;
+
 			setMenuVisible: (visible: boolean) => void;
 		};
 	}
