@@ -2,7 +2,7 @@
 	import {
 		FlipHorizontal,
 		FlipVertical,
-		RefreshCcw,
+		Undo2,
 		CopyPlus,
 		MoveLeft,
 		SquarePlus,
@@ -12,7 +12,8 @@
 		X,
 		Ruler,
 		PanelLeftDashed,
-		PanelTopDashed
+		PanelTopDashed,
+		Grid3x3
 	} from 'lucide-svelte';
 
 	let {
@@ -39,9 +40,6 @@
 		height: number;
 	};
 
-	const ANIMATION_DURATION = 300;
-	const DRAG_THRESHOLD = 5;
-
 	const hitboxAttributes = {
 		id: 1,
 		x: 200,
@@ -50,55 +48,29 @@
 		height: 150
 	};
 
+	const rulerSettingAttributes = {
+		width: 80,
+		height: 80
+	};
+
+	const ANIMATION_DURATION = 300;
+	const DRAG_THRESHOLD = 5;
+
 	let inputScale = $state(1);
 	let tooltipMessage = $state<string | null>(null);
 	let tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
+
 	let settingsOpen = $state(false);
+	let gridOn = $state(false);
 	let outlineOn = $state(false);
 	let editorRulerOn = $state(false);
 	let crosshairRulerTopOn = $state(false);
 	let crosshairRulerLeftOn = $state(false);
+
+	let rulerHWidth = $state(rulerSettingAttributes.width);
+	let rulerVHeight = $state(rulerSettingAttributes.height);
 	let cursorX = $state(0);
 	let cursorY = $state(0);
-
-	function handleCanvasMouseMovement(e: MouseEvent) {
-		const canvas = e.currentTarget as HTMLElement;
-		const rect = canvas.getBoundingClientRect();
-		cursorX = e.clientX - rect.left;
-		cursorY = e.clientY - rect.top;
-	}
-
-	function showTooltip(msg: string) {
-		tooltipMessage = msg;
-		if (tooltipTimeout) clearTimeout(tooltipTimeout);
-		tooltipTimeout = setTimeout(() => {
-			tooltipMessage = null;
-		}, 2500);
-	}
-
-	function incrementScale() {
-		if (inputScale >= 50) {
-			showTooltip('Scale cannot go higher than a value of 50');
-			return;
-		}
-		inputScale++;
-	}
-
-	function decrementScale() {
-		if (inputScale <= 1) {
-			showTooltip('Scale cannot go lower than a value of 1');
-			return;
-		}
-		inputScale--;
-	}
-
-	$effect(() => {
-		inputScale = scale;
-	});
-
-	$effect(() => {
-		setScale(inputScale);
-	});
 
 	let hitboxes = $state<HitboxProps[]>([]);
 	let hitboxX = $state<number>(hitboxAttributes.x);
@@ -193,6 +165,86 @@
 		draggingHitboxId = null;
 	}
 
+	function removeOneHitbox(id: number) {
+		exitingHitboxIds = [...exitingHitboxIds, id];
+		setTimeout(() => {
+			hitboxes = hitboxes.filter((w) => w.id !== id);
+			exitingHitboxIds = exitingHitboxIds.filter((exitingId) => exitingId !== id);
+		}, ANIMATION_DURATION);
+	}
+
+	function resetAttributes() {
+		hitboxX = hitboxAttributes.x;
+		hitboxY = hitboxAttributes.y;
+		hitboxWidth = hitboxAttributes.width;
+		hitboxHeight = hitboxAttributes.height;
+	}
+
+	function removeAllHitboxes() {
+		hitboxes = [];
+		resetAttributes();
+	}
+
+	function addOneHitbox() {
+		const usedIds = hitboxes.map((h) => h.id).sort((a, b) => a - b);
+		let newId = 1;
+		for (let i = 0; i < usedIds.length; i++) {
+			if (usedIds[i] !== i + 1) {
+				newId = i + 1;
+				break;
+			}
+			newId = usedIds.length + 1;
+		}
+
+		const newHitbox: HitboxProps = {
+			id: newId,
+			origin_x: hitboxX,
+			origin_y: hitboxY,
+			width: hitboxWidth,
+			height: hitboxHeight
+		};
+
+		enteringHitboxIds = [...enteringHitboxIds, newId];
+		setTimeout(() => {
+			enteringHitboxIds = enteringHitboxIds.filter((enteringId) => enteringId !== newId);
+		}, ANIMATION_DURATION);
+
+		hitboxes = [...hitboxes, newHitbox];
+		hitboxX += 90;
+		hitboxY += 90;
+	}
+
+	function handleCanvasMouseMovement(e: MouseEvent) {
+		const canvas = e.currentTarget as HTMLElement;
+		const rect = canvas.getBoundingClientRect();
+		cursorX = e.clientX - rect.left;
+		cursorY = e.clientY - rect.top;
+	}
+
+	function showTooltip(msg: string) {
+		tooltipMessage = msg;
+		if (tooltipTimeout) clearTimeout(tooltipTimeout);
+		tooltipTimeout = setTimeout(() => {
+			tooltipMessage = null;
+		}, 2500);
+	}
+
+	function incrementScale() {
+		if (inputScale >= 50) {
+			showTooltip('Scale cannot go higher than a value of 50');
+			return;
+		}
+		inputScale++;
+	}
+
+	function decrementScale() {
+		if (inputScale <= 1) {
+			showTooltip('Scale cannot go lower than a value of 1');
+			return;
+		}
+		inputScale--;
+	}
+
 	$effect(() => {
 		if (isDragging !== 'modal') return;
 
@@ -249,54 +301,13 @@
 		};
 	});
 
-	function removeOneHitbox(id: number) {
-		exitingHitboxIds = [...exitingHitboxIds, id];
-		setTimeout(() => {
-			hitboxes = hitboxes.filter((w) => w.id !== id);
-			exitingHitboxIds = exitingHitboxIds.filter((exitingId) => exitingId !== id);
-		}, ANIMATION_DURATION);
-	}
+	$effect(() => {
+		inputScale = scale;
+	});
 
-	function resetAttributes() {
-		hitboxX = hitboxAttributes.x;
-		hitboxY = hitboxAttributes.y;
-		hitboxWidth = hitboxAttributes.width;
-		hitboxHeight = hitboxAttributes.height;
-	}
-
-	function removeAllHitboxes() {
-		hitboxes = [];
-		resetAttributes();
-	}
-
-	function addOneHitbox() {
-		const usedIds = hitboxes.map((h) => h.id).sort((a, b) => a - b);
-		let newId = 1;
-		for (let i = 0; i < usedIds.length; i++) {
-			if (usedIds[i] !== i + 1) {
-				newId = i + 1;
-				break;
-			}
-			newId = usedIds.length + 1;
-		}
-
-		const newHitbox: HitboxProps = {
-			id: newId,
-			origin_x: hitboxX,
-			origin_y: hitboxY,
-			width: hitboxWidth,
-			height: hitboxHeight
-		};
-
-		enteringHitboxIds = [...enteringHitboxIds, newId];
-		setTimeout(() => {
-			enteringHitboxIds = enteringHitboxIds.filter((enteringId) => enteringId !== newId);
-		}, ANIMATION_DURATION);
-
-		hitboxes = [...hitboxes, newHitbox];
-		hitboxX += 90;
-		hitboxY += 90;
-	}
+	$effect(() => {
+		setScale(inputScale);
+	});
 </script>
 
 {#if settingsOpen}
@@ -308,7 +319,28 @@
 				<X size={16} />
 			</button>
 		</div>
-		<div class="settings-body"></div>
+		<div class="settings-body">
+			<div class="settings-container">
+				<span class="settings-header-text">Ruler Defaults</span>
+				<span class="settings-subtext">change ruler, helper lines, and outline defaults</span>
+				<div>
+					{#if rulerSettingAttributes.width === 80}
+						<span>Default Width:</span>
+					{:else}
+						<span>Width:</span>
+					{/if}
+					<input type="number" class="settings-input" bind:value={rulerSettingAttributes.width} />
+				</div>
+				<div>
+					{#if rulerSettingAttributes.height === 80}
+						<span>Default Height:</span>
+					{:else}
+						<span>Height:</span>
+					{/if}
+					<input type="number" class="settings-input" bind:value={rulerSettingAttributes.height} />
+				</div>
+			</div>
+		</div>
 	</div>
 {/if}
 
@@ -348,6 +380,10 @@
 				<PanelLeftDashed size={18} />
 			</button>
 		{/if}
+
+		<button class:active={gridOn} onclick={() => (gridOn = !gridOn)}>
+			<Grid3x3 size={18} />
+		</button>
 		<button class:active={outlineOn} onclick={() => (outlineOn = !outlineOn)}>
 			<SquareDashed size={18} />
 		</button>
@@ -406,6 +442,16 @@
 				{/if}
 			{/if}
 
+			{#if gridOn}
+				<svg class="grid" xmlns="http://www.w3.org/2000/svg">
+					<defs>
+						<pattern id="grid-pattern" width="10" height="10" patternUnits="userSpaceOnUse">
+							<path d="M 10 0 L 0 0 0 10" fill="none" stroke="#333941" stroke-width="0.5" />
+						</pattern>
+					</defs>
+					<rect width="100%" height="100%" fill="url(#grid-pattern)" />
+				</svg>
+			{/if}
 			{#if currentHitboxModal !== null}
 				<div class="hitbox-modal" style="left: {modalPosX}px; top: {modalPosY}px;">
 					<div
@@ -446,8 +492,8 @@
 									);
 								}}
 							/>
-							<RefreshCcw
-								size={24}
+							<Undo2
+								size={20}
 								color="#fff"
 								class="refresh"
 								onclick={() => {
@@ -474,8 +520,8 @@
 									);
 								}}
 							/>
-							<RefreshCcw
-								size={24}
+							<Undo2
+								size={20}
 								color="#fff"
 								class="refresh"
 								onclick={() => {
@@ -504,8 +550,8 @@
 									);
 								}}
 							/>
-							<RefreshCcw
-								size={24}
+							<Undo2
+								size={20}
 								color="#fff"
 								class="refresh"
 								onclick={() => {
@@ -532,8 +578,8 @@
 									);
 								}}
 							/>
-							<RefreshCcw
-								size={24}
+							<Undo2
+								size={20}
 								color="#fff"
 								class="refresh"
 								onclick={() => {
@@ -597,6 +643,29 @@
 				<span class="rt-value">{inputScale}</span>
 				<SquarePlus size={16} class="rt-step-icon" onclick={incrementScale} />
 			</div>
+		</div>
+		<div class="rt-row">
+			<span class="rt-label">N/A: </span>
+		</div>
+
+		<span class="right-toolbar-title">Ruler</span>
+		<hr class="rt-divider" />
+
+		<div class="rt-row">
+			<span class="rt-label">Width: </span>
+			<div class="rt-stepper"></div>
+		</div>
+		<div class="rt-row">
+			<span class="rt-label">Height: </span>
+			<div class="rt-stepper"></div>
+		</div>
+
+		<span class="right-toolbar-title">Grid</span>
+		<hr class="rt-divider" />
+
+		<div class="rt-row">
+			<span class="rt-label">Scale: </span>
+			<div class="rt-stepper"></div>
 		</div>
 	</div>
 </div>
@@ -867,7 +936,7 @@
 		white-space: nowrap;
 		animation: fadeIn 0.2s ease;
 	}
-	/* ── Settings modal ── */
+	/* ── Ruler styles ── */
 	.ruler {
 		position: absolute;
 		background: rgba(12, 24, 39, 0.92);
@@ -968,7 +1037,7 @@
 		border: 1px solid #374151;
 		border-radius: 12px;
 		width: 480px;
-		min-height: 320px;
+		min-height: 420px;
 		display: flex;
 		flex-direction: column;
 		color: white;
@@ -984,10 +1053,23 @@
 	}
 
 	.settings-title {
-		font-size: 15px;
+		font-size: 20px;
 		font-weight: 600;
 		letter-spacing: 0.04em;
 		color: #e5e7eb;
+	}
+
+	.settings-header-text {
+		font-size: 15px;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		color: #999faa;
+	}
+
+	.settings-subtext {
+		font-size: 12px;
+		font-weight: 500;
+		color: #838892;
 	}
 
 	.settings-close {
@@ -1016,6 +1098,20 @@
 		padding: 1.25rem;
 	}
 
+	.settings-container {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.settings-input {
+		width: 70px;
+		background: #374151;
+		border: 1px solid #4b5563;
+		color: white;
+		border-radius: 4px;
+		padding: 2px 4px;
+	}
+
 	@keyframes modalIn {
 		from {
 			opacity: 0;
@@ -1029,5 +1125,14 @@
 
 	img.outlined {
 		outline: 1px solid rgb(179, 179, 179);
+	}
+
+	/* Grid styles */
+	.grid {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: 1;
 	}
 </style>
