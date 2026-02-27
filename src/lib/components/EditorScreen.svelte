@@ -9,7 +9,10 @@
 		SquareMinus,
 		SquareDashed,
 		Settings,
-		X
+		X,
+		Ruler,
+		PanelLeftDashed,
+		PanelTopDashed
 	} from 'lucide-svelte';
 
 	let {
@@ -50,10 +53,20 @@
 	let inputScale = $state(1);
 	let tooltipMessage = $state<string | null>(null);
 	let tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
-
 	let settingsOpen = $state(false);
 	let outlineOn = $state(false);
 	let editorRulerOn = $state(false);
+	let crosshairRulerTopOn = $state(false);
+	let crosshairRulerLeftOn = $state(false);
+	let cursorX = $state(0);
+	let cursorY = $state(0);
+
+	function handleCanvasMouseMovement(e: MouseEvent) {
+		const canvas = e.currentTarget as HTMLElement;
+		const rect = canvas.getBoundingClientRect();
+		cursorX = e.clientX - rect.left;
+		cursorY = e.clientY - rect.top;
+	}
 
 	function showTooltip(msg: string) {
 		tooltipMessage = msg;
@@ -64,6 +77,10 @@
 	}
 
 	function incrementScale() {
+		if (inputScale >= 50) {
+			showTooltip('Scale cannot go higher than a value of 50');
+			return;
+		}
 		inputScale++;
 	}
 
@@ -83,7 +100,6 @@
 		setScale(inputScale);
 	});
 
-	// Hitbox state
 	let hitboxes = $state<HitboxProps[]>([]);
 	let hitboxX = $state<number>(hitboxAttributes.x);
 	let hitboxY = $state<number>(hitboxAttributes.y);
@@ -297,7 +313,6 @@
 {/if}
 
 <div class="editor-root">
-	<!-- Left toolbar -->
 	<div class="toolbar">
 		<button onclick={setScreen}>
 			<MoveLeft size={18} />
@@ -315,6 +330,24 @@
 			<CopyPlus size={18} />
 		</button>
 
+		<button class:active={editorRulerOn} onclick={() => (editorRulerOn = !editorRulerOn)}>
+			<Ruler size={18} />
+		</button>
+
+		{#if editorRulerOn}
+			<button
+				class:active={crosshairRulerTopOn}
+				onclick={() => (crosshairRulerTopOn = !crosshairRulerTopOn)}
+			>
+				<PanelTopDashed size={18} />
+			</button>
+			<button
+				class:active={crosshairRulerLeftOn}
+				onclick={() => (crosshairRulerLeftOn = !crosshairRulerLeftOn)}
+			>
+				<PanelLeftDashed size={18} />
+			</button>
+		{/if}
 		<button class:active={outlineOn} onclick={() => (outlineOn = !outlineOn)}>
 			<SquareDashed size={18} />
 		</button>
@@ -339,7 +372,40 @@
 			{/if}
 		</div>
 
-		<div class="canvas">
+		<div
+			class="canvas"
+			role="presentation"
+			onmousemove={editorRulerOn ? handleCanvasMouseMovement : undefined}
+		>
+			{#if editorRulerOn}
+				<div class="ruler ruler-top">
+					{#each Array.from({ length: 60 }) as _, i}
+						<div class="ruler-tick" style="left: {i * 10}px;">
+							{#if i % 5 === 0}
+								<span class="ruler-label">{i * 1}</span>
+							{/if}
+						</div>
+					{/each}
+				</div>
+
+				<div class="ruler ruler-left">
+					{#each Array.from({ length: 60 }) as _, i}
+						<div class="ruler-tick-v" style="top: {i * 10}px;">
+							{#if i % 5 === 0}
+								<span class="ruler-label-v">{i * 1}</span>
+							{/if}
+						</div>
+					{/each}
+				</div>
+
+				{#if crosshairRulerTopOn}
+					<div class="crosshair-h" style="top: {cursorY}px;"></div>
+				{/if}
+				{#if crosshairRulerLeftOn}
+					<div class="crosshair-v" style="left: {cursorX}px;"></div>
+				{/if}
+			{/if}
+
 			{#if currentHitboxModal !== null}
 				<div class="hitbox-modal" style="left: {modalPosX}px; top: {modalPosY}px;">
 					<div
@@ -520,7 +586,6 @@
 		</div>
 	</div>
 
-	<!-- Right toolbar -->
 	<div class="right-toolbar">
 		<span class="right-toolbar-title">Properties</span>
 		<hr class="rt-divider" />
@@ -801,6 +866,86 @@
 		padding: 2px 10px;
 		white-space: nowrap;
 		animation: fadeIn 0.2s ease;
+	}
+	/* ── Settings modal ── */
+	.ruler {
+		position: absolute;
+		background: rgba(12, 24, 39, 0.92);
+		z-index: 100;
+		pointer-events: none;
+		user-select: none;
+	}
+
+	.ruler-top {
+		top: 0;
+		left: 20px;
+		right: 0;
+		height: 20px;
+		border-bottom: 1px solid #374151;
+	}
+
+	.ruler-left {
+		top: 20px;
+		left: 0;
+		bottom: 0;
+		width: 20px;
+		border-right: 1px solid #374151;
+	}
+
+	.ruler-tick {
+		position: absolute;
+		top: 0;
+		width: 1px;
+		height: 8px;
+		background: #6b7280;
+	}
+
+	.ruler-tick-v {
+		position: absolute;
+		left: 0;
+		width: 8px;
+		height: 1px;
+		background: #6b7280;
+	}
+
+	.ruler-label {
+		position: absolute;
+		top: 9px;
+		left: -2px;
+		font-size: 8px;
+		color: #6b7280;
+	}
+
+	.ruler-label-v {
+		position: absolute;
+		left: 9px;
+		top: -2px;
+		font-size: 8px;
+		color: #6b7280;
+		white-space: nowrap;
+		writing-mode: vertical-rl;
+		transform: rotate(180deg);
+	}
+
+	/* ── Crosshair ── */
+	.crosshair-h {
+		position: absolute;
+		left: 0;
+		right: 0;
+		height: 1px;
+		background: rgba(100, 220, 255, 0.35);
+		pointer-events: none;
+		z-index: 99;
+	}
+
+	.crosshair-v {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 1px;
+		background: rgba(100, 220, 255, 0.35);
+		pointer-events: none;
+		z-index: 99;
 	}
 
 	/* ── Settings modal ── */
