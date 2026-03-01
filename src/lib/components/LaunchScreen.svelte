@@ -86,7 +86,7 @@
 				<p class="filepath muted">No Image Selected...</p>
 			</div>
 		{/if}
-		<span class="version">Version: 2.0.0x (Pre-Alpha)</span>
+		<span class="version">Version: 2.5.1x (Pre-Alpha)</span>
 	</div>
 </div>
 

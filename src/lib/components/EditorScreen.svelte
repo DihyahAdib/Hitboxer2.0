@@ -61,6 +61,7 @@
 	let tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	let settingsOpen = $state(false);
+	let gridSize = $state(10);
 	let gridOn = $state(false);
 	let outlineOn = $state(false);
 	let editorRulerOn = $state(false);
@@ -71,6 +72,8 @@
 	let rulerVHeight = $state(rulerSettingAttributes.height);
 	let cursorX = $state(0);
 	let cursorY = $state(0);
+
+	let modifiedValue = $state(2);
 
 	let hitboxes = $state<HitboxProps[]>([]);
 	let hitboxX = $state<number>(hitboxAttributes.x);
@@ -229,20 +232,36 @@
 		}, 2500);
 	}
 
-	function incrementScale() {
+	function incrementScale(modifiedValue: number) {
 		if (inputScale >= 50) {
 			showTooltip('Scale cannot go higher than a value of 50');
 			return;
 		}
-		inputScale++;
+		inputScale += modifiedValue;
 	}
 
-	function decrementScale() {
+	function decrementScale(modifiedValue: number) {
 		if (inputScale <= 1) {
 			showTooltip('Scale cannot go lower than a value of 1');
 			return;
 		}
-		inputScale--;
+		inputScale -= modifiedValue;
+	}
+
+	function incrementGridScale() {
+		gridSize++;
+	}
+
+	function decrementGridSize() {
+		if (gridSize <= 1) {
+			showTooltip('Grid size cannot go lower than 1');
+			return;
+		}
+		gridSize--;
+	}
+
+	function snapToGrid(value: number): number {
+		return Math.round(value / gridSize) * gridSize;
 	}
 
 	$effect(() => {
@@ -282,8 +301,11 @@
 			const mouseXRelativeToEditor = e.clientX - editorRect.left;
 			const mouseYRelativeToEditor = e.clientY - editorRect.top;
 
-			const X = mouseXRelativeToEditor - hitboxOffset.x;
-			const Y = mouseYRelativeToEditor - hitboxOffset.y;
+			const rawX = mouseXRelativeToEditor - hitboxOffset.x;
+			const rawY = mouseYRelativeToEditor - hitboxOffset.y;
+
+			const X = gridOn ? snapToGrid(rawX) : rawX;
+			const Y = gridOn ? snapToGrid(rawY) : rawY;
 
 			hitboxes = hitboxes.map((h) =>
 				h.id === draggingHitboxId ? { ...h, origin_x: X, origin_y: Y } : h
@@ -323,6 +345,7 @@
 			<div class="settings-container">
 				<span class="settings-header-text">Ruler Defaults</span>
 				<span class="settings-subtext">change ruler, helper lines, and outline defaults</span>
+
 				<div>
 					{#if rulerSettingAttributes.width === 80}
 						<span>Default Width:</span>
@@ -331,6 +354,7 @@
 					{/if}
 					<input type="number" class="settings-input" bind:value={rulerSettingAttributes.width} />
 				</div>
+
 				<div>
 					{#if rulerSettingAttributes.height === 80}
 						<span>Default Height:</span>
@@ -338,6 +362,13 @@
 						<span>Height:</span>
 					{/if}
 					<input type="number" class="settings-input" bind:value={rulerSettingAttributes.height} />
+				</div>
+
+				<span class="settings-header-text">Image Scale Value</span>
+
+				<div>
+					<span>Increment Value:</span>
+					<input type="number" class="settings-input" step={0.1} bind:value={modifiedValue} />
 				</div>
 			</div>
 		</div>
@@ -445,8 +476,18 @@
 			{#if gridOn}
 				<svg class="grid" xmlns="http://www.w3.org/2000/svg">
 					<defs>
-						<pattern id="grid-pattern" width="10" height="10" patternUnits="userSpaceOnUse">
-							<path d="M 10 0 L 0 0 0 10" fill="none" stroke="#333941" stroke-width="0.5" />
+						<pattern
+							id="grid-pattern"
+							width={gridSize}
+							height={gridSize}
+							patternUnits="userSpaceOnUse"
+						>
+							<path
+								d="M {gridSize} 0 L 0 0 0 {gridSize}"
+								fill="none"
+								stroke="#565e69"
+								stroke-width="0.5"
+							/>
 						</pattern>
 					</defs>
 					<rect width="100%" height="100%" fill="url(#grid-pattern)" />
@@ -635,17 +676,34 @@
 	<div class="right-toolbar">
 		<span class="right-toolbar-title">Properties</span>
 		<hr class="rt-divider" />
-
 		<div class="rt-row">
 			<span class="rt-label">Scale: </span>
-			<div class="rt-stepper">
-				<SquareMinus size={16} class="rt-step-icon" onclick={decrementScale} />
-				<span class="rt-value">{inputScale}</span>
-				<SquarePlus size={16} class="rt-step-icon" onclick={incrementScale} />
+			<div
+				class="rt-stepper"
+				onwheel={(e) => {
+					e.preventDefault();
+					e.deltaY < 0 ? incrementScale(modifiedValue) : decrementScale(modifiedValue);
+				}}
+			>
+				<SquareMinus size={16} class="rt-step-icon" onclick={() => decrementScale(modifiedValue)} />
+				<input class="rt-value-input" type="text" bind:value={inputScale} />
+				<SquarePlus size={16} class="rt-step-icon" onclick={() => incrementScale(modifiedValue)} />
 			</div>
 		</div>
-		<div class="rt-row">
-			<span class="rt-label">N/A: </span>
+
+		<div class="rt-row rows">
+			<span class="rt-label">Incremental Value: </span>
+			<div>
+				<input
+					type="range"
+					class="rt-slider"
+					min="1"
+					max="10"
+					step="0.1"
+					bind:value={modifiedValue}
+				/>
+				<span class="rt-value">{modifiedValue}</span>
+			</div>
 		</div>
 
 		<span class="right-toolbar-title">Ruler</span>
@@ -662,10 +720,24 @@
 
 		<span class="right-toolbar-title">Grid</span>
 		<hr class="rt-divider" />
-
 		<div class="rt-row">
 			<span class="rt-label">Scale: </span>
-			<div class="rt-stepper"></div>
+			<div
+				class="rt-stepper"
+				onwheel={(e) => {
+					e.preventDefault();
+					e.deltaY < 0 ? incrementGridScale() : decrementGridSize();
+				}}
+			>
+				<SquareMinus size={16} class="rt-step-icon" onclick={decrementGridSize} />
+				<input class="rt-value-input" type="text" bind:value={gridSize} />
+				<SquarePlus size={16} class="rt-step-icon" onclick={incrementGridScale} />
+			</div>
+		</div>
+
+		<div class="rt-row">
+			<span class="rt-label rt-label-sm">Snap: </span>
+			<span class="rt-snap-indicator" class:rt-snap-active={gridOn}>{gridOn ? 'on' : 'off'}</span>
 		</div>
 	</div>
 </div>
@@ -673,7 +745,7 @@
 <style>
 	.editor-root {
 		display: grid;
-		grid-template-columns: 80px 1fr 160px;
+		grid-template-columns: 80px 1fr 180px;
 		height: 100vh;
 		background: #10141d;
 		color: white;
@@ -747,11 +819,44 @@
 		width: 90%;
 	}
 
+	.rows {
+		flex-direction: column;
+	}
+
+	.rt-slider {
+		margin: 6px 0px 0px 0px;
+		width: 82%;
+		accent-color: #305e49;
+		cursor: pointer;
+		height: 6px;
+	}
+
 	.rt-label {
 		font-size: 16px;
 		color: #9ca3af;
 		white-space: nowrap;
 		flex-shrink: 0;
+	}
+
+	.rt-label-sm {
+		font-size: 16px;
+	}
+
+	.rt-snap-indicator {
+		font-size: 11px;
+		font-weight: 600;
+		padding: 2px 8px;
+		border-radius: 6px;
+		background: #374151;
+		color: #6b7280;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		user-select: none;
+	}
+
+	.rt-snap-active {
+		background: rgba(48, 94, 73, 0.4);
+		color: #4ade80;
 	}
 
 	.rt-stepper {
@@ -766,11 +871,22 @@
 
 	.rt-value {
 		font-size: 12px;
-		font-weight: 600;
+		font-weight: 700;
 		color: #e5e7eb;
-		min-width: 28px;
 		text-align: center;
 		user-select: none;
+	}
+
+	.rt-value-input {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 12px;
+		width: 28px;
+		color: #e5e7eb;
+		text-align: center;
+		border: none;
+		background: transparent;
 	}
 
 	:global(.rt-step-icon) {
@@ -1060,10 +1176,10 @@
 	}
 
 	.settings-header-text {
-		font-size: 15px;
+		font-size: 18px;
 		font-weight: 600;
 		letter-spacing: 0.02em;
-		color: #999faa;
+		color: #a7abb3;
 	}
 
 	.settings-subtext {
