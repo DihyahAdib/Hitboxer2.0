@@ -13,7 +13,9 @@
 		Ruler,
 		PanelLeftDashed,
 		PanelTopDashed,
-		Grid3x3
+		Grid3x3,
+		Link2Off,
+		Link2
 	} from 'lucide-svelte';
 
 	let {
@@ -56,25 +58,28 @@
 	const ANIMATION_DURATION = 300;
 	const DRAG_THRESHOLD = 5;
 
-	let inputScale = $state(1);
 	let tooltipMessage = $state<string | null>(null);
 	let tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	let settingsOpen = $state(false);
+	let gridX = $state(0.0);
+	let gridY = $state(0.0);
 	let gridSize = $state(10);
+	let cursorX = $state(0);
+	let cursorY = $state(0);
+	let inputScale = $state(1);
+	let modifiedValue = $state(1);
+	let modifiedGridValue = $state(1);
+
 	let gridOn = $state(false);
 	let outlineOn = $state(false);
+	let settingsOpen = $state(false);
 	let editorRulerOn = $state(false);
+	let isGridValuesClamped = $state(false);
 	let crosshairRulerTopOn = $state(false);
 	let crosshairRulerLeftOn = $state(false);
 
 	let rulerHWidth = $state(rulerSettingAttributes.width);
 	let rulerVHeight = $state(rulerSettingAttributes.height);
-	let cursorX = $state(0);
-	let cursorY = $state(0);
-
-	let modifiedValue = $state(2);
-
 	let hitboxes = $state<HitboxProps[]>([]);
 	let hitboxX = $state<number>(hitboxAttributes.x);
 	let hitboxY = $state<number>(hitboxAttributes.y);
@@ -248,16 +253,24 @@
 		inputScale -= modifiedValue;
 	}
 
-	function incrementGridScale() {
-		gridSize++;
+	function incrementGridScale(modifiedGridValue: number, isGridValuesClamped: boolean) {
+		gridSize += modifiedGridValue;
 	}
 
-	function decrementGridSize() {
-		if (gridSize <= 1) {
-			showTooltip('Grid size cannot go lower than 1');
-			return;
+	function decrementGridSize(modifiedGridValue: number, isGridValuesClamped: boolean) {
+		if (isGridValuesClamped) {
+			if (gridSize <= 1) {
+				showTooltip('Grid size cannot go lower than 1');
+				return;
+			}
+			gridSize -= modifiedGridValue;
+		} else {
+			if (gridX <= 0.1) {
+				showTooltip('Grid width cannot go lower than 0.1');
+				return;
+			}
+			gridX -= modifiedGridValue;
 		}
-		gridSize--;
 	}
 
 	function snapToGrid(value: number): number {
@@ -713,6 +726,7 @@
 			<span class="rt-label">Width: </span>
 			<div class="rt-stepper"></div>
 		</div>
+
 		<div class="rt-row">
 			<span class="rt-label">Height: </span>
 			<div class="rt-stepper"></div>
@@ -720,19 +734,121 @@
 
 		<span class="right-toolbar-title">Grid</span>
 		<hr class="rt-divider" />
+
 		<div class="rt-row">
 			<span class="rt-label">Scale: </span>
 			<div
 				class="rt-stepper"
 				onwheel={(e) => {
 					e.preventDefault();
-					e.deltaY < 0 ? incrementGridScale() : decrementGridSize();
+					e.deltaY < 0
+						? incrementGridScale(modifiedGridValue, isGridValuesClamped)
+						: decrementGridSize(modifiedGridValue, isGridValuesClamped);
 				}}
 			>
-				<SquareMinus size={16} class="rt-step-icon" onclick={decrementGridSize} />
+				<SquareMinus
+					size={16}
+					class="rt-step-icon"
+					onclick={() => decrementGridSize(modifiedGridValue, isGridValuesClamped)}
+				/>
 				<input class="rt-value-input" type="text" bind:value={gridSize} />
-				<SquarePlus size={16} class="rt-step-icon" onclick={incrementGridScale} />
+				<SquarePlus
+					size={16}
+					class="rt-step-icon"
+					onclick={() => incrementGridScale(modifiedGridValue, isGridValuesClamped)}
+				/>
 			</div>
+		</div>
+
+		<div class="rt-clamp-container">
+			<div class="rt-row">
+				<span class="rt-label">X: </span>
+				<div
+					class="rt-stepper {isGridValuesClamped ? 'rt-clamp-active' : ''}"
+					class:rt-clamp-active={isGridValuesClamped}
+					class:rt-stepper-disabled={!isGridValuesClamped}
+				>
+					<SquareMinus
+						size={16}
+						class="rt-step-icon"
+						onclick={isGridValuesClamped
+							? () => decrementGridSize(modifiedGridValue, isGridValuesClamped)
+							: undefined}
+					/>
+					<input
+						class="rt-value-input"
+						type="text"
+						bind:value={gridSize}
+						disabled={!isGridValuesClamped}
+					/>
+					<SquarePlus
+						size={16}
+						class="rt-step-icon"
+						onclick={isGridValuesClamped
+							? () => incrementGridScale(modifiedGridValue, isGridValuesClamped)
+							: undefined}
+					/>
+				</div>
+			</div>
+
+			<button
+				class:active={isGridValuesClamped}
+				class="rt-clamp"
+				onclick={() => (isGridValuesClamped = !isGridValuesClamped)}
+			>
+				{#if isGridValuesClamped}
+					<Link2 size={18} />
+				{:else}
+					<Link2Off size={18} />
+				{/if}
+			</button>
+
+			<div class="rt-row">
+				<span class="rt-label">Y: </span>
+				<div
+					class="rt-stepper {isGridValuesClamped ? 'rt-clamp-active' : ''}"
+					class:rt-clamp-active={isGridValuesClamped}
+					class:rt-stepper-disabled={!isGridValuesClamped}
+				>
+					<SquareMinus
+						size={16}
+						class="rt-step-icon"
+						onclick={isGridValuesClamped
+							? () => decrementGridSize(modifiedGridValue, isGridValuesClamped)
+							: undefined}
+					/>
+					<input class="rt-value-input" type="text" bind:value={gridSize} />
+					<SquarePlus
+						size={16}
+						class="rt-step-icon"
+						onclick={isGridValuesClamped
+							? () => incrementGridScale(modifiedGridValue, isGridValuesClamped)
+							: undefined}
+					/>
+				</div>
+			</div>
+		</div>
+
+		<div class="rt-row rows">
+			<span class="rt-label">Incremental Value: </span>
+			<div>
+				<input
+					type="range"
+					class="rt-slider"
+					min="1"
+					max="10"
+					step="0.1"
+					bind:value={modifiedGridValue}
+				/>
+				<span class="rt-value">{modifiedGridValue}</span>
+			</div>
+		</div>
+
+		<div class="rt-row">
+			<span class="rt-label rt-label-sm">Clamp: </span>
+			<span class="rt-snap-indicator" class:rt-snap-active={isGridValuesClamped}
+				>{isGridValuesClamped ? 'on' : 'off'}</span
+			>
 		</div>
 
 		<div class="rt-row">
@@ -823,6 +939,23 @@
 		flex-direction: column;
 	}
 
+	.rt-clamp {
+		background: transparent;
+		border: none;
+		color: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.rt-clamp-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+	}
+
 	.rt-slider {
 		margin: 6px 0px 0px 0px;
 		width: 82%;
@@ -843,7 +976,7 @@
 	}
 
 	.rt-snap-indicator {
-		font-size: 11px;
+		font-size: 12px;
 		font-weight: 600;
 		padding: 2px 8px;
 		border-radius: 6px;
@@ -867,6 +1000,17 @@
 		border: 1px solid #374151;
 		border-radius: 8px;
 		padding: 3px 6px;
+	}
+
+	.rt-stepper-disabled {
+		opacity: 0.45;
+		pointer-events: none;
+		background: #111827;
+		border-color: #2a2f3a;
+	}
+
+	.rt-stepper-disabled input {
+		cursor: not-allowed;
 	}
 
 	.rt-value {
