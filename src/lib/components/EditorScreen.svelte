@@ -61,8 +61,8 @@
 	let tooltipMessage = $state<string | null>(null);
 	let tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	let gridX = $state(0.0);
-	let gridY = $state(0.0);
+	let gridX = $state(10);
+	let gridY = $state(10);
 	let gridSize = $state(10);
 	let cursorX = $state(0);
 	let cursorY = $state(0);
@@ -254,7 +254,12 @@
 	}
 
 	function incrementGridScale(modifiedGridValue: number, isGridValuesClamped: boolean) {
-		gridSize += modifiedGridValue;
+		if (isGridValuesClamped) {
+			gridSize += modifiedGridValue;
+		} else {
+			gridX += modifiedGridValue;
+			gridY += modifiedGridValue;
+		}
 	}
 
 	function decrementGridSize(modifiedGridValue: number, isGridValuesClamped: boolean) {
@@ -270,11 +275,38 @@
 				return;
 			}
 			gridX -= modifiedGridValue;
+			gridY -= modifiedGridValue;
 		}
 	}
 
-	function snapToGrid(value: number): number {
-		return Math.round(value / gridSize) * gridSize;
+	function incrementGridX(modifiedGridValue: number) {
+		gridX += modifiedGridValue;
+	}
+
+	function decrementGridX(modifiedGridValue: number) {
+		if (gridX <= 1) {
+			showTooltip('Grid X cannot go lower than 1');
+			return;
+		}
+		gridX -= modifiedGridValue;
+	}
+
+	function incrementGridY(modifiedGridValue: number) {
+		gridY += modifiedGridValue;
+	}
+
+	function decrementGridY(modifiedGridValue: number) {
+		if (gridY <= 1) {
+			showTooltip('Grid Y cannot go lower than 1');
+			return;
+		}
+		gridY -= modifiedGridValue;
+	}
+
+	function snapToGrid(value: number, axis: 'x' | 'y'): number {
+		const size = isGridValuesClamped ? gridSize : axis === 'x' ? gridX : gridY;
+		if (size <= 0) return value;
+		return Math.round(value / size) * size;
 	}
 
 	$effect(() => {
@@ -317,8 +349,8 @@
 			const rawX = mouseXRelativeToEditor - hitboxOffset.x;
 			const rawY = mouseYRelativeToEditor - hitboxOffset.y;
 
-			const X = gridOn ? snapToGrid(rawX) : rawX;
-			const Y = gridOn ? snapToGrid(rawY) : rawY;
+			const X = gridOn ? snapToGrid(rawX, 'x') : rawX;
+			const Y = gridOn ? snapToGrid(rawY, 'y') : rawY;
 
 			hitboxes = hitboxes.map((h) =>
 				h.id === draggingHitboxId ? { ...h, origin_x: X, origin_y: Y } : h
@@ -491,12 +523,14 @@
 					<defs>
 						<pattern
 							id="grid-pattern"
-							width={gridSize}
-							height={gridSize}
+							width={isGridValuesClamped ? gridSize : gridX}
+							height={isGridValuesClamped ? gridSize : gridY}
 							patternUnits="userSpaceOnUse"
 						>
 							<path
-								d="M {gridSize} 0 L 0 0 0 {gridSize}"
+								d="M {isGridValuesClamped ? gridSize : gridX} 0 L 0 0 0 {isGridValuesClamped
+									? gridSize
+									: gridY}"
 								fill="none"
 								stroke="#565e69"
 								stroke-width="0.5"
@@ -764,36 +798,35 @@
 			<div class="rt-row">
 				<span class="rt-label">X: </span>
 				<div
-					class="rt-stepper {isGridValuesClamped ? 'rt-clamp-active' : ''}"
-					class:rt-clamp-active={isGridValuesClamped}
-					class:rt-stepper-disabled={!isGridValuesClamped}
+					class="rt-stepper"
+					class:rt-stepper-disabled={isGridValuesClamped}
+					onwheel={(e) => {
+						e.preventDefault();
+						e.deltaY < 0 ? incrementGridX(modifiedGridValue) : decrementGridX(modifiedGridValue);
+					}}
 				>
 					<SquareMinus
 						size={16}
 						class="rt-step-icon"
-						onclick={isGridValuesClamped
-							? () => decrementGridSize(modifiedGridValue, isGridValuesClamped)
-							: undefined}
+						onclick={!isGridValuesClamped ? () => decrementGridX(modifiedGridValue) : undefined}
 					/>
 					<input
 						class="rt-value-input"
 						type="text"
-						bind:value={gridSize}
-						disabled={!isGridValuesClamped}
+						bind:value={gridX}
+						disabled={isGridValuesClamped}
 					/>
 					<SquarePlus
 						size={16}
 						class="rt-step-icon"
-						onclick={isGridValuesClamped
-							? () => incrementGridScale(modifiedGridValue, isGridValuesClamped)
-							: undefined}
+						onclick={!isGridValuesClamped ? () => incrementGridX(modifiedGridValue) : undefined}
 					/>
 				</div>
 			</div>
 
 			<button
-				class:active={isGridValuesClamped}
 				class="rt-clamp"
+				class:active={isGridValuesClamped}
 				onclick={() => (isGridValuesClamped = !isGridValuesClamped)}
 			>
 				{#if isGridValuesClamped}
@@ -806,24 +839,28 @@
 			<div class="rt-row">
 				<span class="rt-label">Y: </span>
 				<div
-					class="rt-stepper {isGridValuesClamped ? 'rt-clamp-active' : ''}"
-					class:rt-clamp-active={isGridValuesClamped}
-					class:rt-stepper-disabled={!isGridValuesClamped}
+					class="rt-stepper"
+					class:rt-stepper-disabled={isGridValuesClamped}
+					onwheel={(e) => {
+						e.preventDefault();
+						e.deltaY < 0 ? incrementGridY(modifiedGridValue) : decrementGridY(modifiedGridValue);
+					}}
 				>
 					<SquareMinus
 						size={16}
 						class="rt-step-icon"
-						onclick={isGridValuesClamped
-							? () => decrementGridSize(modifiedGridValue, isGridValuesClamped)
-							: undefined}
+						onclick={!isGridValuesClamped ? () => decrementGridY(modifiedGridValue) : undefined}
 					/>
-					<input class="rt-value-input" type="text" bind:value={gridSize} />
+					<input
+						class="rt-value-input"
+						type="text"
+						bind:value={gridY}
+						disabled={isGridValuesClamped}
+					/>
 					<SquarePlus
 						size={16}
 						class="rt-step-icon"
-						onclick={isGridValuesClamped
-							? () => incrementGridScale(modifiedGridValue, isGridValuesClamped)
-							: undefined}
+						onclick={!isGridValuesClamped ? () => incrementGridY(modifiedGridValue) : undefined}
 					/>
 				</div>
 			</div>
