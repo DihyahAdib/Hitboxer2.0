@@ -474,18 +474,25 @@
 		</button>
 
 		{#if editorRulerOn}
-			<button
-				class:active={crosshairRulerTopOn}
-				onclick={() => (crosshairRulerTopOn = !crosshairRulerTopOn)}
-			>
-				<PanelTopDashed size={18} />
-			</button>
-			<button
-				class:active={crosshairRulerLeftOn}
-				onclick={() => (crosshairRulerLeftOn = !crosshairRulerLeftOn)}
-			>
-				<PanelLeftDashed size={18} />
-			</button>
+			<div class="sub-group">
+				<div class="sub-group-line"></div>
+				<div class="sub-group-buttons">
+					<button
+						class="sub-btn"
+						class:active={crosshairRulerTopOn}
+						onclick={() => (crosshairRulerTopOn = !crosshairRulerTopOn)}
+					>
+						<PanelTopDashed size={14} />
+					</button>
+					<button
+						class="sub-btn"
+						class:active={crosshairRulerLeftOn}
+						onclick={() => (crosshairRulerLeftOn = !crosshairRulerLeftOn)}
+					>
+						<PanelLeftDashed size={14} />
+					</button>
+				</div>
+			</div>
 		{/if}
 
 		<button class:active={gridOn} onclick={() => (gridOn = !gridOn)}>
@@ -1035,6 +1042,48 @@
 
 	.toolbar button.active {
 		background: #305e49;
+	}
+
+	.sub-group {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		width: 100%;
+		padding-left: 6px;
+		box-sizing: border-box;
+		gap: 4px;
+	}
+
+	.sub-group-line {
+		width: 2px;
+		align-self: stretch;
+		background: #305e49;
+		border-radius: 2px;
+		flex-shrink: 0;
+		min-height: 10px;
+	}
+
+	.sub-group-buttons {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		flex: 1;
+		align-items: center;
+	}
+
+	.sub-btn {
+		background: #161e2b !important;
+		border: 1px solid #2a3a4a !important;
+		border-radius: 7px !important;
+		width: 32px !important;
+		height: 32px !important;
+		color: #6b7280 !important;
+	}
+
+	.sub-btn.active {
+		background: #305e49 !important;
+		color: white !important;
+		border-color: #305e49 !important;
 	}
 
 	/* ── Right toolbar ── */
