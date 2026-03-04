@@ -20,6 +20,7 @@
 
 	let {
 		imgPath,
+		imgSize,
 		filePath,
 		scale,
 		flipX,
@@ -58,9 +59,6 @@
 	const ANIMATION_DURATION = 300;
 	const DRAG_THRESHOLD = 5;
 
-	let tooltipMessage = $state<string | null>(null);
-	let tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
-
 	let gridX = $state(10);
 	let gridY = $state(10);
 	let gridSize = $state(10);
@@ -69,37 +67,38 @@
 	let inputScale = $state(1);
 	let modifiedValue = $state(1);
 	let modifiedGridValue = $state(1);
+	let modifiedRulerValue = $state(1);
 
 	let gridOn = $state(false);
 	let outlineOn = $state(false);
+	let isDragAction = $state(false);
 	let settingsOpen = $state(false);
 	let editorRulerOn = $state(false);
 	let isGridValuesClamped = $state(false);
 	let crosshairRulerTopOn = $state(false);
 	let crosshairRulerLeftOn = $state(false);
 
-	let rulerHWidth = $state(rulerSettingAttributes.width);
-	let rulerVHeight = $state(rulerSettingAttributes.height);
+	let rulerWidth = $state(rulerSettingAttributes.width);
+	let rulerHeight = $state(rulerSettingAttributes.height);
+	let tooltipMessage = $state<string | null>(null);
+	let tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
+
 	let hitboxes = $state<HitboxProps[]>([]);
 	let hitboxX = $state<number>(hitboxAttributes.x);
 	let hitboxY = $state<number>(hitboxAttributes.y);
 	let hitboxWidth = $state<number>(hitboxAttributes.width);
 	let hitboxHeight = $state<number>(hitboxAttributes.height);
+	let hitboxOffset = $state<Offset>({ x: 0, y: 0 });
 	let exitingHitboxIds = $state<number[]>([]);
 	let enteringHitboxIds = $state<number[]>([]);
-
 	let isDragging = $state<'modal' | 'hitbox' | null>(null);
 	let draggingHitboxId = $state<number | null>(null);
+	let currentHitboxModal = $state<number | null>(null);
+	let dragStartRef: { x: number; y: number } | null = null;
 
 	let modalOffset = $state<Offset>({ x: 0, y: 0 });
 	let modalPosX = $state<number>(400);
 	let modalPosY = $state<number>(200);
-
-	let hitboxOffset = $state<Offset>({ x: 0, y: 0 });
-	let currentHitboxModal = $state<number | null>(null);
-
-	let isDragAction = $state(false);
-	let dragStartRef: { x: number; y: number } | null = null;
 
 	function handleHitboxMouseDown(e: MouseEvent, id: number) {
 		dragStartRef = { x: e.clientX, y: e.clientY };
@@ -253,54 +252,86 @@
 		inputScale -= modifiedValue;
 	}
 
+	function incrementRulerWidth(modifiedRulerValue: number) {
+		if (rulerWidth >= 164) {
+			showTooltip('Ruler Width cannot go larger than 120 ticks');
+			return;
+		}
+		rulerWidth += modifiedRulerValue;
+	}
+
+	function decrementRulerWidth(modifiedRulerValue: number) {
+		if (rulerWidth <= 60) {
+			showTooltip('Ruler Width cannot go lower than 60 ticks');
+			return;
+		}
+		rulerWidth -= modifiedRulerValue;
+	}
+
+	function incrementRulerHeight(modifiedRulerValue: number) {
+		if (rulerHeight >= 94) {
+			showTooltip('Ruler Height cannot go larger than 120 ticks');
+			return;
+		}
+		rulerHeight += modifiedRulerValue;
+	}
+
+	function decrementRulerHeight(modifiedRulerValue: number) {
+		if (rulerHeight <= 60) {
+			showTooltip('Ruler Height cannot go lower than 60 ticks');
+			return;
+		}
+		rulerHeight -= modifiedRulerValue;
+	}
+
 	function incrementGridScale(modifiedGridValue: number, isGridValuesClamped: boolean) {
 		if (isGridValuesClamped) {
-			gridSize += modifiedGridValue;
+			gridSize = Math.round((gridSize + modifiedGridValue) * 1000) / 1000;
 		} else {
-			gridX += modifiedGridValue;
-			gridY += modifiedGridValue;
+			gridX = Math.round((gridX + modifiedGridValue) * 1000) / 1000;
+			gridY = Math.round((gridY + modifiedGridValue) * 1000) / 1000;
 		}
 	}
 
 	function decrementGridSize(modifiedGridValue: number, isGridValuesClamped: boolean) {
 		if (isGridValuesClamped) {
-			if (gridSize <= 1) {
-				showTooltip('Grid size cannot go lower than 1');
+			if (gridSize <= 0.1) {
+				showTooltip('Grid size cannot go lower than 0.1');
 				return;
 			}
-			gridSize -= modifiedGridValue;
+			gridSize = Math.round((gridSize - modifiedGridValue) * 1000) / 1000;
 		} else {
 			if (gridX <= 0.1) {
-				showTooltip('Grid width cannot go lower than 0.1');
+				showTooltip('Grid size cannot go lower than 0.1');
 				return;
 			}
-			gridX -= modifiedGridValue;
-			gridY -= modifiedGridValue;
+			gridX = Math.round((gridX - modifiedGridValue) * 1000) / 1000;
+			gridY = Math.round((gridY - modifiedGridValue) * 1000) / 1000;
 		}
 	}
 
 	function incrementGridX(modifiedGridValue: number) {
-		gridX += modifiedGridValue;
+		gridX = Math.round((gridX + modifiedGridValue) * 1000) / 1000;
 	}
 
 	function decrementGridX(modifiedGridValue: number) {
-		if (gridX <= 1) {
-			showTooltip('Grid X cannot go lower than 1');
+		if (gridX <= 0.1) {
+			showTooltip('Grid width cannot go lower than 0.1');
 			return;
 		}
-		gridX -= modifiedGridValue;
+		gridX = Math.round((gridX - modifiedGridValue) * 1000) / 1000;
 	}
 
 	function incrementGridY(modifiedGridValue: number) {
-		gridY += modifiedGridValue;
+		gridY = Math.round((gridY + modifiedGridValue) * 1000) / 1000;
 	}
 
 	function decrementGridY(modifiedGridValue: number) {
-		if (gridY <= 1) {
-			showTooltip('Grid Y cannot go lower than 1');
+		if (gridY <= 0.1) {
+			showTooltip('Grid height cannot go lower than 0.1');
 			return;
 		}
-		gridY -= modifiedGridValue;
+		gridY = Math.round((gridY - modifiedGridValue) * 1000) / 1000;
 	}
 
 	function snapToGrid(value: number, axis: 'x' | 'y'): number {
@@ -491,7 +522,7 @@
 		>
 			{#if editorRulerOn}
 				<div class="ruler ruler-top">
-					{#each Array.from({ length: 60 }) as _, i}
+					{#each Array.from({ length: rulerWidth }) as _, i}
 						<div class="ruler-tick" style="left: {i * 10}px;">
 							{#if i % 5 === 0}
 								<span class="ruler-label">{i * 1}</span>
@@ -501,7 +532,7 @@
 				</div>
 
 				<div class="ruler ruler-left">
-					{#each Array.from({ length: 60 }) as _, i}
+					{#each Array.from({ length: rulerHeight }) as _, i}
 						<div class="ruler-tick-v" style="top: {i * 10}px;">
 							{#if i % 5 === 0}
 								<span class="ruler-label-v">{i * 1}</span>
@@ -540,6 +571,7 @@
 					<rect width="100%" height="100%" fill="url(#grid-pattern)" />
 				</svg>
 			{/if}
+
 			{#if currentHitboxModal !== null}
 				<div class="hitbox-modal" style="left: {modalPosX}px; top: {modalPosY}px;">
 					<div
@@ -721,8 +753,11 @@
 	</div>
 
 	<div class="right-toolbar">
-		<span class="right-toolbar-title">Properties</span>
 		<hr class="rt-divider" />
+		<span class="right-toolbar-title">Properties</span>
+
+		<hr class="rt-divider" />
+
 		<div class="rt-row">
 			<span class="rt-label">Scale: </span>
 			<div
@@ -753,26 +788,90 @@
 			</div>
 		</div>
 
+		<div class="rt-img-info">
+			<span class="rt-info-label">Source</span>
+			<div class="rt-info-row">
+				<span class="rt-info-key">W</span>
+				<span class="rt-info-val">{imgSize?.width ?? 0}px</span>
+				<span class="rt-info-key">H</span>
+				<span class="rt-info-val">{imgSize?.height ?? 0}px</span>
+			</div>
+			<span class="rt-info-label">Scaled</span>
+			<div class="rt-info-row">
+				<span class="rt-info-key">W</span>
+				<span class="rt-info-val">{imgSize ? imgSize.width * inputScale : 0}px</span>
+				<span class="rt-info-key">H</span>
+				<span class="rt-info-val">{imgSize ? imgSize.height * inputScale : 0}px</span>
+			</div>
+		</div>
+
+		<hr class="rt-divider" />
+
 		<span class="right-toolbar-title">Ruler</span>
+
 		<hr class="rt-divider" />
 
 		<div class="rt-row">
 			<span class="rt-label">Width: </span>
-			<div class="rt-stepper"></div>
+			<div
+				class="rt-stepper"
+				onwheel={(e) => {
+					e.preventDefault();
+					e.deltaY < 0
+						? incrementRulerWidth(modifiedRulerValue)
+						: decrementRulerWidth(modifiedRulerValue);
+				}}
+			>
+				<SquareMinus
+					size={16}
+					class="rt-step-icon"
+					onclick={() => decrementRulerWidth(modifiedRulerValue)}
+				/>
+				<input class="rt-value-input" type="text" bind:value={rulerWidth} />
+				<SquarePlus
+					size={16}
+					class="rt-step-icon"
+					onclick={() => incrementRulerWidth(modifiedRulerValue)}
+				/>
+			</div>
 		</div>
 
 		<div class="rt-row">
 			<span class="rt-label">Height: </span>
-			<div class="rt-stepper"></div>
+			<div
+				class="rt-stepper"
+				onwheel={(e) => {
+					e.preventDefault();
+					e.deltaY < 0
+						? incrementRulerHeight(modifiedRulerValue)
+						: decrementRulerHeight(modifiedRulerValue);
+				}}
+			>
+				<SquareMinus
+					size={16}
+					class="rt-step-icon"
+					onclick={() => decrementRulerHeight(modifiedRulerValue)}
+				/>
+				<input class="rt-value-input" type="text" bind:value={rulerHeight} />
+				<SquarePlus
+					size={16}
+					class="rt-step-icon"
+					onclick={() => incrementRulerHeight(modifiedRulerValue)}
+				/>
+			</div>
 		</div>
 
+		<hr class="rt-divider" />
+
 		<span class="right-toolbar-title">Grid</span>
+
 		<hr class="rt-divider" />
 
 		<div class="rt-row">
 			<span class="rt-label">Scale: </span>
 			<div
 				class="rt-stepper"
+				class:rt-stepper-disabled={!isGridValuesClamped}
 				onwheel={(e) => {
 					e.preventDefault();
 					e.deltaY < 0
@@ -872,7 +971,7 @@
 				<input
 					type="range"
 					class="rt-slider"
-					min="1"
+					min="0.1"
 					max="10"
 					step="0.1"
 					bind:value={modifiedGridValue}
@@ -1081,6 +1180,44 @@
 
 	:global(.rt-step-icon:hover) {
 		color: #4ade80;
+	}
+	/* Right toolbar img info */
+	.rt-img-info {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		width: 90%;
+	}
+
+	.rt-info-label {
+		font-size: 10px;
+		font-weight: 600;
+		color: #6b7280;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+
+	.rt-info-row {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		background: #1f2937;
+		border: 1px solid #374151;
+		border-radius: 6px;
+		padding: 3px 8px;
+	}
+
+	.rt-info-key {
+		font-size: 10px;
+		color: #6b7280;
+		font-weight: 600;
+	}
+
+	.rt-info-val {
+		font-size: 11px;
+		color: #e5e7eb;
+		font-weight: 500;
+		flex: 1;
 	}
 
 	/* ── Canvas wrapper ── */

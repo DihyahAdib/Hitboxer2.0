@@ -62,17 +62,17 @@
 		imgSize.height = height;
 	}
 
-function setScale(val: number) {
-	scale = val;
-}
+	function setScale(val: number) {
+		scale = val;
+	}
 
-function setFlipX(val: boolean) {
-	flipX = val;
-}
+	function setFlipX(val: boolean) {
+		flipX = val;
+	}
 
-function setFlipY(val: boolean) {
-	flipY = val;
-}
+	function setFlipY(val: boolean) {
+		flipY = val;
+	}
 
 	function setScreen() {
 		loadLaunchScreen === 'hitboxEditorScreen'
@@ -120,6 +120,7 @@ function setFlipY(val: boolean) {
 {:else if loadLaunchScreen == 'hitboxEditorScreen'}
 	<EditorScreen
 		{imgPath}
+		{imgSize}
 		{filePath}
 		{scale}
 		{flipX}
