@@ -41,6 +41,8 @@
 		origin_y: number;
 		width: number;
 		height: number;
+		img_x: number;
+		img_y: number;
 	};
 
 	const hitboxAttributes = {
@@ -208,7 +210,9 @@
 			origin_x: hitboxX,
 			origin_y: hitboxY,
 			width: hitboxWidth,
-			height: hitboxHeight
+			height: hitboxHeight,
+			img_x: 0,
+			img_y: 0
 		};
 
 		enteringHitboxIds = [...enteringHitboxIds, newId];
@@ -383,8 +387,19 @@
 			const X = gridOn ? snapToGrid(rawX, 'x') : rawX;
 			const Y = gridOn ? snapToGrid(rawY, 'y') : rawY;
 
+			const imgLeft = editorRect.width / 2 - (imgSize.width * scale) / 2;
+			const imgTop = editorRect.height / 2 - (imgSize.height * scale) / 2;
+
 			hitboxes = hitboxes.map((h) =>
-				h.id === draggingHitboxId ? { ...h, origin_x: X, origin_y: Y } : h
+				h.id === draggingHitboxId
+					? {
+							...h,
+							origin_x: X,
+							origin_y: Y,
+							img_x: Math.round(X - imgLeft),
+							img_y: Math.round(Y - imgTop)
+						}
+					: h
 			);
 		};
 
@@ -529,7 +544,7 @@
 		>
 			{#if editorRulerOn}
 				<div class="ruler ruler-top">
-					{#each Array.from({ length: rulerWidth }) as _, i}
+					{#each Array.from({ length: rulerWidth }) as _, i (i)}
 						<div class="ruler-tick" style="left: {i * 10}px;">
 							{#if i % 5 === 0}
 								<span class="ruler-label">{i * 1}</span>
@@ -539,7 +554,7 @@
 				</div>
 
 				<div class="ruler ruler-left">
-					{#each Array.from({ length: rulerHeight }) as _, i}
+					{#each Array.from({ length: rulerHeight }) as _, i (i)}
 						<div class="ruler-tick-v" style="top: {i * 10}px;">
 							{#if i % 5 === 0}
 								<span class="ruler-label-v">{i * 1}</span>
@@ -609,13 +624,16 @@
 								id="hitbox-x"
 								type="number"
 								class="input-styles-modal"
-								value={hitboxes.find((h) => h.id === currentHitboxModal)?.origin_x ?? hitboxX}
-								step={10}
-								min={10}
+								value={hitboxes.find((h) => h.id === currentHitboxModal)?.img_x ?? 0}
+								step={1}
 								oninput={(e) => {
 									const v = Number((e.target as HTMLInputElement).value);
+									const editorEl = document.querySelector('.canvas');
+									if (!editorEl) return;
+									const r = editorEl.getBoundingClientRect();
+									const imgLeft = r.width / 2 - (imgSize.Width * scale) / 2;
 									hitboxes = hitboxes.map((h) =>
-										h.id === currentHitboxModal ? { ...h, origin_x: v } : h
+										h.id === currentHitboxModal ? { ...h, img_x: v, origin_x: v + imgLeft } : h
 									);
 								}}
 							/>
@@ -624,8 +642,12 @@
 								color="#fff"
 								class="refresh"
 								onclick={() => {
+									const editorEl = document.querySelector('.canvas');
+									if (!editorEl) return;
+									const r = editorEl.getBoundingClientRect();
+									const imgLeft = r.width / 2 - (imgSize.width * scale) / 2;
 									hitboxes = hitboxes.map((h) =>
-										h.id === currentHitboxModal ? { ...h, origin_x: hitboxAttributes.x } : h
+										h.id === currentHitboxModal ? { ...h, img_x: 0, origin_x: imgLeft } : h
 									);
 								}}
 							/>
@@ -637,13 +659,16 @@
 								id="hitbox-y"
 								type="number"
 								class="input-styles-modal"
-								value={hitboxes.find((h) => h.id === currentHitboxModal)?.origin_y ?? hitboxY}
-								step={10}
-								min={10}
+								value={hitboxes.find((h) => h.id === currentHitboxModal)?.img_y ?? 0}
+								step={1}
 								oninput={(e) => {
 									const v = Number((e.target as HTMLInputElement).value);
+									const editorEl = document.querySelector('canvas');
+									if (!editorEl) return;
+									const r = editorEl.getBoundingClientRect();
+									const imgTop = r.height / 2 - (imgSize.height * scale) / 2;
 									hitboxes = hitboxes.map((h) =>
-										h.id === currentHitboxModal ? { ...h, origin_y: v } : h
+										h.id === currentHitboxModal ? { ...h, img_y: v, origin_y: v + imgTop } : h
 									);
 								}}
 							/>
@@ -652,8 +677,12 @@
 								color="#fff"
 								class="refresh"
 								onclick={() => {
+									const editorEl = document.querySelector('.canvas');
+									if (!editorEl) return;
+									const r = editorEl.getBoundingClientRect();
+									const imgTop = r.height / 2 - (imgSize.height * scale) / 2;
 									hitboxes = hitboxes.map((h) =>
-										h.id === currentHitboxModal ? { ...h, origin_y: hitboxAttributes.y } : h
+										h.id === currentHitboxModal ? { ...h, img_y: 0, origin_y: imgTop } : h
 									);
 								}}
 							/>
@@ -668,8 +697,7 @@
 								type="number"
 								class="input-styles-modal"
 								value={hitboxes.find((h) => h.id === currentHitboxModal)?.width ?? hitboxWidth}
-								step={10}
-								min={10}
+								step={1}
 								oninput={(e) => {
 									const v = Number((e.target as HTMLInputElement).value);
 									hitboxes = hitboxes.map((h) =>
@@ -696,8 +724,7 @@
 								type="number"
 								class="input-styles-modal"
 								value={hitboxes.find((h) => h.id === currentHitboxModal)?.height ?? hitboxHeight}
-								step={10}
-								min={10}
+								step={1}
 								oninput={(e) => {
 									const v = Number((e.target as HTMLInputElement).value);
 									hitboxes = hitboxes.map((h) =>
@@ -721,6 +748,15 @@
 			{/if}
 
 			{#if imgPath}
+				{#if outlineOn}
+					<div
+						class="image-outline"
+						style="
+						width: {imgSize.width * scale}px; 
+						height: {imgSize.height * scale}px;
+						"
+					></div>
+				{/if}
 				<div
 					class="image-wrapper"
 					style="transform: scale({flipX ? -scale : scale}, {flipY ? -scale : scale});"
@@ -730,7 +766,6 @@
 						alt="Selected sprite asset"
 						onload={handleImageDefaultSize}
 						draggable="false"
-						class:outlined={outlineOn}
 					/>
 				</div>
 			{/if}
@@ -1606,10 +1641,6 @@
 		}
 	}
 
-	img.outlined {
-		outline: 1px solid rgb(179, 179, 179);
-	}
-
 	/* Grid styles */
 	.grid {
 		position: absolute;
@@ -1617,5 +1648,15 @@
 		height: 100%;
 		pointer-events: none;
 		z-index: 1;
+	}
+
+	.image-outline {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		outline: 1px solid rgb(179, 179, 179);
+		pointer-events: none;
+		z-index: 10;
 	}
 </style>
