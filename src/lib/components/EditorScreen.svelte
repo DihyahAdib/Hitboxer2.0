@@ -101,6 +101,8 @@
 	let modalOffset = $state<Offset>({ x: 0, y: 0 });
 	let modalPosX = $state<number>(400);
 	let modalPosY = $state<number>(200);
+	let modalInputX = $state(0);
+	let modalInputY = $state(0);
 
 	function handleHitboxMouseDown(e: MouseEvent, id: number) {
 		dragStartRef = { x: e.clientX, y: e.clientY };
@@ -415,6 +417,14 @@
 	});
 
 	$effect(() => {
+		const h = hitboxes.find((h) => h.id === currentHitboxModal);
+		if (h) {
+			modalInputX = h.img_x;
+			modalInputY = h.img_y;
+		}
+	});
+
+	$effect(() => {
 		inputScale = scale;
 	});
 
@@ -571,27 +581,35 @@
 				{/if}
 			{/if}
 
-			{#if gridOn}
-				<svg class="grid" xmlns="http://www.w3.org/2000/svg">
-					<defs>
-						<pattern
-							id="grid-pattern"
-							width={isGridValuesClamped ? gridSize : gridX}
-							height={isGridValuesClamped ? gridSize : gridY}
-							patternUnits="userSpaceOnUse"
-						>
-							<path
-								d="M {isGridValuesClamped ? gridSize : gridX} 0 L 0 0 0 {isGridValuesClamped
-									? gridSize
-									: gridY}"
-								fill="none"
-								stroke="#565e69"
-								stroke-width="0.5"
-							/>
-						</pattern>
-					</defs>
-					<rect width="100%" height="100%" fill="url(#grid-pattern)" />
-				</svg>
+			{#if gridOn && imgPath}
+				<div
+					class="image-grid"
+					style="
+            width: {imgSize.width * scale}px;
+            height: {imgSize.height * scale}px;
+        "
+				>
+					<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+						<defs>
+							<pattern
+								id="grid-pattern"
+								width={isGridValuesClamped ? gridSize : gridX}
+								height={isGridValuesClamped ? gridSize : gridY}
+								patternUnits="userSpaceOnUse"
+							>
+								<path
+									d="M {isGridValuesClamped ? gridSize : gridX} 0 L 0 0 0 {isGridValuesClamped
+										? gridSize
+										: gridY}"
+									fill="none"
+									stroke="#565e69"
+									stroke-width="0.5"
+								/>
+							</pattern>
+						</defs>
+						<rect width="100%" height="100%" fill="url(#grid-pattern)" />
+					</svg>
+				</div>
 			{/if}
 
 			{#if currentHitboxModal !== null}
@@ -624,16 +642,17 @@
 								id="hitbox-x"
 								type="number"
 								class="input-styles-modal"
-								value={hitboxes.find((h) => h.id === currentHitboxModal)?.img_x ?? 0}
 								step={1}
-								oninput={(e) => {
-									const v = Number((e.target as HTMLInputElement).value);
+								bind:value={modalInputX}
+								onchange={() => {
 									const editorEl = document.querySelector('.canvas');
 									if (!editorEl) return;
 									const r = editorEl.getBoundingClientRect();
-									const imgLeft = r.width / 2 - (imgSize.Width * scale) / 2;
+									const imgLeft = r.width / 2 - (imgSize.width * scale) / 2;
 									hitboxes = hitboxes.map((h) =>
-										h.id === currentHitboxModal ? { ...h, img_x: v, origin_x: v + imgLeft } : h
+										h.id === currentHitboxModal
+											? { ...h, img_x: modalInputX, origin_x: modalInputX + imgLeft }
+											: h
 									);
 								}}
 							/>
@@ -646,6 +665,7 @@
 									if (!editorEl) return;
 									const r = editorEl.getBoundingClientRect();
 									const imgLeft = r.width / 2 - (imgSize.width * scale) / 2;
+									modalInputX = 0;
 									hitboxes = hitboxes.map((h) =>
 										h.id === currentHitboxModal ? { ...h, img_x: 0, origin_x: imgLeft } : h
 									);
@@ -659,16 +679,17 @@
 								id="hitbox-y"
 								type="number"
 								class="input-styles-modal"
-								value={hitboxes.find((h) => h.id === currentHitboxModal)?.img_y ?? 0}
 								step={1}
-								oninput={(e) => {
-									const v = Number((e.target as HTMLInputElement).value);
-									const editorEl = document.querySelector('canvas');
+								bind:value={modalInputY}
+								onchange={() => {
+									const editorEl = document.querySelector('.canvas');
 									if (!editorEl) return;
 									const r = editorEl.getBoundingClientRect();
 									const imgTop = r.height / 2 - (imgSize.height * scale) / 2;
 									hitboxes = hitboxes.map((h) =>
-										h.id === currentHitboxModal ? { ...h, img_y: v, origin_y: v + imgTop } : h
+										h.id === currentHitboxModal
+											? { ...h, img_y: modalInputY, origin_y: modalInputY + imgTop }
+											: h
 									);
 								}}
 							/>
@@ -681,6 +702,7 @@
 									if (!editorEl) return;
 									const r = editorEl.getBoundingClientRect();
 									const imgTop = r.height / 2 - (imgSize.height * scale) / 2;
+									modalInputY = 0;
 									hitboxes = hitboxes.map((h) =>
 										h.id === currentHitboxModal ? { ...h, img_y: 0, origin_y: imgTop } : h
 									);
@@ -1642,12 +1664,13 @@
 	}
 
 	/* Grid styles */
-	.grid {
+	.image-grid {
 		position: absolute;
-		width: 100%;
-		height: 100%;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
 		pointer-events: none;
-		z-index: 1;
+		z-index: 2;
 	}
 
 	.image-outline {
