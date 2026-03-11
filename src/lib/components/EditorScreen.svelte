@@ -68,12 +68,13 @@
 	let gridX = $state(10);
 	let gridY = $state(10);
 	let gridSize = $state(10);
-	let cursorX = $state(0);
-	let cursorY = $state(0);
 	let inputScale = $state(1);
 	let modifiedValue = $state(1);
 	let modifiedGridValue = $state(1);
 	let modifiedRulerValue = $state(1);
+
+	let cursorX = $state(0);
+	let cursorY = $state(0);
 
 	let gridOn = $state(false);
 	let outlineOn = $state(false);
@@ -107,6 +108,28 @@
 	let modalPosY = $state<number>(200);
 	let modalInputX = $state(0);
 	let modalInputY = $state(0);
+
+	$effect(() => {
+		window.electronAPI.storeSet('editorSettings', {
+			row,
+			col,
+			gridX,
+			gridY,
+			gridSize,
+			modifiedValue,
+			modifiedGridValue,
+			modifiedRulerValue,
+			rulerWidth,
+			rulerHeight,
+			outlineOn,
+			isDragAction,
+			settingsOpen,
+			editorRulerOn,
+			isGridValuesClamped,
+			crosshairRulerTopOn,
+			crosshairRulerLeftOn
+		});
+	});
 
 	function handleHitboxMouseDown(e: MouseEvent, id: number) {
 		dragStartRef = { x: e.clientX, y: e.clientY };

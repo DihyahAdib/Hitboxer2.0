@@ -21,6 +21,10 @@ declare global {
 			offFullscreenChanged: (callback: (event: unknown, isFullscreen: boolean) => void) => void;
 
 			setMenuVisible: (visible: boolean) => void;
+
+			storeGet: (key: string) => Promise<any>;
+			storeDel: (key: string) => Promise<any>;
+			storeSet: (key: string, value: any) => void;
 		};
 	}
 }

@@ -19,8 +19,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
   onFullscreenChanged: (callback) => ipcRenderer.on('menu:fullscreen-changed', callback),
   offFullscreenChanged: (callback) => ipcRenderer.removeListener('menu:fullscreen-changed', callback),
-
   setMenuVisible: (visible) => ipcRenderer.send('set-menu-visible', visible),
+
+  storeGet: (key) => ipcRenderer.invoke('store-get', key),
+  storeDel: (key) => ipcRenderer.invoke('store-del', key),
+  storeSet: (key, value) => ipcRenderer.send('store-set', key, value),
+  
   loadImage: (filePath) => {
     const data = fs.readFileSync(filePath);
     const blob = new Blob([data], { type: 'image/*' });

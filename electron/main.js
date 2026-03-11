@@ -1,11 +1,13 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'path';
+import Store from 'electron-store';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development';
+const store = new Store();
 
 let appMenu = null;
 
@@ -160,3 +162,7 @@ ipcMain.handle('open-image-dialog', async () => {
 	if (result.canceled) return null;
 	return result.filePaths[0];
 });
+
+ipcMain.handle('store-get', (event, key) => store.get(key));
+ipcMain.handle('store-del', (event, key) => store.delete(key));
+ipcMain.on('store-set', (event, key, value) => store.set(key, value));		
