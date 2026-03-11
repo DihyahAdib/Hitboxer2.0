@@ -15,7 +15,9 @@
 		PanelTopDashed,
 		Grid3x3,
 		Link2Off,
-		Link2
+		Link2,
+		Info,
+		Frame
 	} from 'lucide-svelte';
 
 	let {
@@ -61,6 +63,8 @@
 	const ANIMATION_DURATION = 300;
 	const DRAG_THRESHOLD = 5;
 
+	let row = $state(1);
+	let col = $state(1);
 	let gridX = $state(10);
 	let gridY = $state(10);
 	let gridSize = $state(10);
@@ -242,9 +246,41 @@
 		}, 2500);
 	}
 
+	function incrementRowCount() {
+		if (row >= 100) {
+			showTooltip('Please change max defaults in settings to allow for more spritesheet rows.');
+			return;
+		}
+		row++;
+	}
+
+	function decrementRowCount() {
+		if (row <= 1) {
+			showTooltip('A spritesheet cannot contain less than 1 row(s).');
+			return;
+		}
+		row--;
+	}
+
+	function incrementColCount() {
+		if (col >= 100) {
+			showTooltip('Please change max defaults in settings to allow for more spritesheet cols.');
+			return;
+		}
+		col++;
+	}
+
+	function decrementColCount() {
+		if (col <= 1) {
+			showTooltip('A spritesheet cannot contain less than 1 col(s).');
+			return;
+		}
+		col--;
+	}
+
 	function incrementScale(modifiedValue: number) {
 		if (inputScale >= 50) {
-			showTooltip('Scale cannot go higher than a value of 50');
+			showTooltip('Scale cannot go higher than a value of 50.');
 			return;
 		}
 		inputScale += modifiedValue;
@@ -252,7 +288,7 @@
 
 	function decrementScale(modifiedValue: number) {
 		if (inputScale <= 1) {
-			showTooltip('Scale cannot go lower than a value of 1');
+			showTooltip('Scale cannot go lower than a value of 1.');
 			return;
 		}
 		inputScale -= modifiedValue;
@@ -260,7 +296,7 @@
 
 	function incrementRulerWidth(modifiedRulerValue: number) {
 		if (rulerWidth >= 164) {
-			showTooltip('Ruler Width cannot go larger than 120 ticks');
+			showTooltip('Ruler Width cannot go larger than 120 ticks.');
 			return;
 		}
 		rulerWidth += modifiedRulerValue;
@@ -268,7 +304,7 @@
 
 	function decrementRulerWidth(modifiedRulerValue: number) {
 		if (rulerWidth <= 60) {
-			showTooltip('Ruler Width cannot go lower than 60 ticks');
+			showTooltip('Ruler Width cannot go lower than 60 ticks.');
 			return;
 		}
 		rulerWidth -= modifiedRulerValue;
@@ -276,7 +312,7 @@
 
 	function incrementRulerHeight(modifiedRulerValue: number) {
 		if (rulerHeight >= 94) {
-			showTooltip('Ruler Height cannot go larger than 120 ticks');
+			showTooltip('Ruler Height cannot go larger than 120 ticks.');
 			return;
 		}
 		rulerHeight += modifiedRulerValue;
@@ -284,7 +320,7 @@
 
 	function decrementRulerHeight(modifiedRulerValue: number) {
 		if (rulerHeight <= 60) {
-			showTooltip('Ruler Height cannot go lower than 60 ticks');
+			showTooltip('Ruler Height cannot go lower than 60 ticks.');
 			return;
 		}
 		rulerHeight -= modifiedRulerValue;
@@ -343,7 +379,17 @@
 	function snapToGrid(value: number, axis: 'x' | 'y'): number {
 		const size = isGridValuesClamped ? gridSize : axis === 'x' ? gridX : gridY;
 		if (size <= 0) return value;
-		return Math.round(value / size) * size;
+
+		const editorEl = document.querySelector('.canvas');
+		if (!editorEl) return value;
+		const r = editorEl.getBoundingClientRect();
+
+		const origin =
+			axis === 'x'
+				? r.width / 2 - (imgSize.width * scale) / 2
+				: r.height / 2 - (imgSize.height * scale) / 2;
+
+		return Math.round((value - origin) / size) * size + origin;
 	}
 
 	$effect(() => {
@@ -435,6 +481,7 @@
 
 {#if settingsOpen}
 	<div class="settings-backdrop" role="presentation" onclick={() => (settingsOpen = false)}></div>
+
 	<div class="settings-modal">
 		<div class="settings-header">
 			<span class="settings-title">Settings</span>
@@ -442,34 +489,67 @@
 				<X size={16} />
 			</button>
 		</div>
-		<div class="settings-body">
-			<div class="settings-container">
-				<span class="settings-header-text">Ruler Defaults</span>
-				<span class="settings-subtext">change ruler, helper lines, and outline defaults</span>
 
-				<div>
-					{#if rulerSettingAttributes.width === 80}
-						<span>Default Width:</span>
-					{:else}
-						<span>Width:</span>
-					{/if}
+		<div class="settings-body">
+			<div class="settings-section">
+				<div class="settings-section-header">
+					<span class="settings-section-title">Ruler Defaults</span>
+					<span class="settings-section-desc">
+						Change ruler, helper line, and outline defaults
+					</span>
+				</div>
+
+				<div class="settings-row">
+					<span class="settings-label">
+						{rulerSettingAttributes.width === 80 ? 'Default Width' : 'Width'}
+					</span>
+
 					<input type="number" class="settings-input" bind:value={rulerSettingAttributes.width} />
 				</div>
 
-				<div>
-					{#if rulerSettingAttributes.height === 80}
-						<span>Default Height:</span>
-					{:else}
-						<span>Height:</span>
-					{/if}
+				<div class="settings-row">
+					<span class="settings-label">
+						{rulerSettingAttributes.height === 80 ? 'Default Height' : 'Height'}
+					</span>
+
 					<input type="number" class="settings-input" bind:value={rulerSettingAttributes.height} />
 				</div>
+			</div>
 
-				<span class="settings-header-text">Image Scale Value</span>
+			<div class="settings-section">
+				<div class="settings-section-header">
+					<span class="settings-section-title">Image Scale</span>
+					<span class="settings-section-desc"> Controls default image scale increments </span>
+				</div>
 
-				<div>
-					<span>Increment Value:</span>
-					<input type="number" class="settings-input" step={0.1} bind:value={modifiedValue} />
+				<div class="settings-row">
+					<span class="settings-label">Increment Value</span>
+
+					<input type="number" class="settings-input" step="0.1" bind:value={modifiedValue} />
+				</div>
+			</div>
+
+			<div class="settings-section">
+				<div class="settings-section-header">
+					<span class="settings-section-title">Spritesheet</span>
+					<span class="settings-section-desc">Information on spritesheet attributes</span>
+					<span class="settings-label"></span>
+				</div>
+			</div>
+
+			<div class="settings-section">
+				<div class="settings-section-header">
+					<span class="settings-section-title">Cells</span>
+					<span class="settings-section-desc">Information on Hitbox attributes</span>
+					<span class="settings-label"></span>
+				</div>
+			</div>
+
+			<div class="settings-section">
+				<div class="settings-section-header">
+					<span class="settings-section-title">Hitboxs</span>
+					<span class="settings-section-desc">Information on Hitbox attributes</span>
+					<span class="settings-label"></span>
 				</div>
 			</div>
 		</div>
@@ -1055,13 +1135,68 @@
 			<span class="rt-label rt-label-sm">Snap: </span>
 			<span class="rt-snap-indicator" class:rt-snap-active={gridOn}>{gridOn ? 'on' : 'off'}</span>
 		</div>
+
+		<hr class="rt-divider" />
+
+		<span class="right-toolbar-title">Spritesheet</span>
+
+		<hr class="rt-divider" />
+
+		<div class="rt-row">
+			<span class="rt-label">Rows: </span>
+			<div
+				class="rt-stepper"
+				onwheel={(e) => {
+					e.preventDefault();
+					e.deltaY < 0 ? incrementRowCount() : decrementRowCount();
+				}}
+			>
+				<SquareMinus size={16} class="rt-step-icon" onclick={() => decrementRowCount()} />
+				<input class="rt-value-input" type="text" bind:value={row} />
+				<SquarePlus size={16} class="rt-step-icon" onclick={() => incrementRowCount()} />
+			</div>
+		</div>
+		<div class="rt-row">
+			<span class="rt-label">Cols: </span>
+			<div
+				class="rt-stepper"
+				onwheel={(e) => {
+					e.preventDefault();
+					e.deltaY < 0 ? incrementColCount() : decrementColCount();
+				}}
+			>
+				<SquareMinus size={16} class="rt-step-icon" onclick={() => decrementColCount()} />
+				<input class="rt-value-input" type="text" bind:value={col} />
+				<SquarePlus size={16} class="rt-step-icon" onclick={() => incrementColCount()} />
+			</div>
+		</div>
+
+		<hr class="rt-divider" />
+
+		<span class="right-toolbar-title">Hitbox</span>
+
+		<hr class="rt-divider" />
+
+		<div class="rt-row">
+			<span class="rt-label">Count: </span>
+			<span class="rt-value">{hitboxes.length}</span>
+		</div>
+
+		<div class="rt-row">
+			<span class="rt-label">Cell Width: </span>
+			<span class="rt-value">{(imgSize?.width / row).toFixed(2)}px</span>
+		</div>
+		<div class="rt-row">
+			<span class="rt-label">Cell Height: </span>
+			<span class="rt-value">{(imgSize?.height / col).toFixed(2)}px</span>
+		</div>
 	</div>
 </div>
 
 <style>
 	.editor-root {
 		display: grid;
-		grid-template-columns: 80px 1fr 180px;
+		grid-template-columns: 80px 1fr 195px;
 		height: 100vh;
 		background: #10141d;
 		color: white;
@@ -1599,19 +1734,6 @@
 		color: #e5e7eb;
 	}
 
-	.settings-header-text {
-		font-size: 18px;
-		font-weight: 600;
-		letter-spacing: 0.02em;
-		color: #a7abb3;
-	}
-
-	.settings-subtext {
-		font-size: 12px;
-		font-weight: 500;
-		color: #838892;
-	}
-
 	.settings-close {
 		background: #374151;
 		border: none;
@@ -1635,12 +1757,61 @@
 
 	.settings-body {
 		flex: 1;
-		padding: 1.25rem;
-	}
-
-	.settings-container {
+		padding: 22px;
 		display: flex;
 		flex-direction: column;
+		gap: 26px;
+	}
+
+	.settings-section {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+
+	.settings-section:not(:last-child) {
+		padding-bottom: 18px;
+		border-bottom: 1px solid #1f2937;
+	}
+
+	.settings-section-header {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.settings-section-title {
+		font-size: 14px;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: #e5e7eb;
+	}
+
+	.settings-section-desc {
+		font-size: 12px;
+		color: #6b7280;
+	}
+
+	/* row */
+
+	.settings-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+
+		background: #1f2937;
+		border: 1px solid #374151;
+		border-radius: 8px;
+
+		padding: 8px 12px;
+	}
+
+	.settings-label {
+		font-size: 13px;
+		color: #9ca3af;
+		font-weight: 500;
 	}
 
 	.settings-input {
@@ -1650,6 +1821,11 @@
 		color: white;
 		border-radius: 4px;
 		padding: 2px 4px;
+	}
+
+	.settings-input:focus {
+		outline: none;
+		border-color: #48305e;
 	}
 
 	@keyframes modalIn {
