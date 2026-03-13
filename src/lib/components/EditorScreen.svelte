@@ -19,6 +19,7 @@
 		Info,
 		Frame
 	} from 'lucide-svelte';
+	import { onMount } from 'svelte';
 
 	let {
 		imgPath,
@@ -63,6 +64,10 @@
 	const ANIMATION_DURATION = 300;
 	const DRAG_THRESHOLD = 5;
 
+	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+	let isSaving = $state(false);
+	let saveIndicatorTimeout: ReturnType<typeof setTimeout> | null = null;
+
 	let row = $state(1);
 	let col = $state(1);
 	let gridX = $state(10);
@@ -73,6 +78,8 @@
 	let modifiedGridValue = $state(1);
 	let modifiedRulerValue = $state(1);
 
+	let spaceFromImg = $state(40);
+
 	let cursorX = $state(0);
 	let cursorY = $state(0);
 
@@ -81,12 +88,15 @@
 	let isDragAction = $state(false);
 	let settingsOpen = $state(false);
 	let editorRulerOn = $state(false);
+	let cellOutlineWidthOn = $state(false);
+	let cellOutlineHeightOn = $state(false);
 	let isGridValuesClamped = $state(false);
 	let crosshairRulerTopOn = $state(false);
 	let crosshairRulerLeftOn = $state(false);
 
 	let rulerWidth = $state(rulerSettingAttributes.width);
 	let rulerHeight = $state(rulerSettingAttributes.height);
+
 	let tooltipMessage = $state<string | null>(null);
 	let tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -110,25 +120,67 @@
 	let modalInputY = $state(0);
 
 	$effect(() => {
-		window.electronAPI.storeSet('editorSettings', {
+		const settings = {
 			row,
 			col,
 			gridX,
 			gridY,
 			gridSize,
+			inputScale,
 			modifiedValue,
 			modifiedGridValue,
 			modifiedRulerValue,
-			rulerWidth,
-			rulerHeight,
+			gridOn,
 			outlineOn,
-			isDragAction,
-			settingsOpen,
 			editorRulerOn,
 			isGridValuesClamped,
 			crosshairRulerTopOn,
-			crosshairRulerLeftOn
-		});
+			crosshairRulerLeftOn,
+			rulerWidth,
+			rulerHeight,
+			hitboxX,
+			hitboxY,
+			isDragAction,
+			settingsOpen
+		};
+
+		if (saveTimeout) clearTimeout(saveTimeout);
+		saveTimeout = setTimeout(() => {
+			window.electronAPI.storeSet('editorSettings', settings);
+
+			isSaving = true;
+
+			if (saveIndicatorTimeout) clearTimeout(saveIndicatorTimeout);
+			saveIndicatorTimeout = setTimeout(() => {
+				isSaving = false;
+			}, 1500);
+		}, 300);
+	});
+
+	onMount(async () => {
+		const saved = await window.electronAPI.storeGet('editorSettings');
+		if (!saved) return;
+		row = saved.row ?? 1;
+		col = saved.col ?? 1;
+		gridX = saved.gridX ?? 10;
+		gridY = saved.gridY ?? 10;
+		gridSize = saved.gridSize ?? 10;
+		inputScale = saved.inputScale ?? 1;
+		modifiedValue = saved.modifiedValue ?? 1;
+		modifiedGridValue = saved.modifiedGridValue ?? 1;
+		modifiedRulerValue = saved.modifiedRulerValue ?? 1;
+		gridOn = saved.gridOn ?? false;
+		outlineOn = saved.outlineOn ?? false;
+		editorRulerOn = saved.editorRulerOn ?? false;
+		isGridValuesClamped = saved.isGridValuesClamped ?? false;
+		crosshairRulerTopOn = saved.crosshairRulerTopOn ?? false;
+		crosshairRulerLeftOn = saved.crosshairRulerLeftOn ?? false;
+		rulerWidth = saved.rulerWidth ?? rulerSettingAttributes.width;
+		rulerHeight = saved.rulerHeight ?? rulerSettingAttributes.height;
+		hitboxX = saved.hitboxX ?? hitboxAttributes.x;
+		hitboxY = saved.hitboxY ?? hitboxAttributes.y;
+		isDragAction = saved.isDragAction ?? false;
+		settingsOpen = saved.settingsOpen ?? false;
 	});
 
 	function handleHitboxMouseDown(e: MouseEvent, id: number) {
@@ -626,10 +678,24 @@
 		<button class:active={gridOn} onclick={() => (gridOn = !gridOn)}>
 			<Grid3x3 size={18} />
 		</button>
+
 		<button class:active={outlineOn} onclick={() => (outlineOn = !outlineOn)}>
 			<SquareDashed size={18} />
 		</button>
 
+		<button
+			class:active={cellOutlineWidthOn}
+			onclick={() => (cellOutlineWidthOn = !cellOutlineWidthOn)}
+		>
+			<Frame size={18} />
+		</button>
+
+		<button
+			class:active={cellOutlineHeightOn}
+			onclick={() => (cellOutlineHeightOn = !cellOutlineHeightOn)}
+		>
+			<Frame size={18} />
+		</button>
 		<div class="toolbar-spacer"></div>
 		<button onclick={() => (settingsOpen = true)}>
 			<Settings size={18} />
@@ -645,6 +711,9 @@
 					- No Image Loaded -
 				{/if}
 			</p>
+			{#if isSaving}
+				<span class="tooltip-saving">● Saving...</span>
+			{/if}
 			{#if tooltipMessage}
 				<span class="tooltip-warning">{tooltipMessage}</span>
 			{/if}
@@ -892,6 +961,32 @@
 						onload={handleImageDefaultSize}
 						draggable="false"
 					/>
+				</div>
+			{/if}
+
+			{#if cellOutlineWidthOn}
+				<div
+					class="cell-dimensions-width"
+					style="
+				width: {(imgSize?.width / row) * scale}px;
+				height: 2px; top: 0px; left: 0px;
+				"
+				>
+					Source W:{imgSize?.width / row}
+				</div>
+			{/if}
+
+			{#if cellOutlineHeightOn}
+				<div
+					class="cell-dimensions-height"
+					style="
+					width: 1px; 
+					height: {(imgSize?.height / col) * scale}px; 
+					top: calc(50% - {(imgSize.height * scale) / 2}px);
+					left: calc(50% - {(imgSize.width * scale + spaceFromImg) / 2}px);
+					"
+				>
+					Source H:{imgSize?.height / col}
 				</div>
 			{/if}
 
@@ -1634,6 +1729,14 @@
 		white-space: nowrap;
 		animation: fadeIn 0.2s ease;
 	}
+
+	.tooltip-saving {
+		margin-left: auto;
+		font-size: 11px;
+		color: #4ade80;
+		white-space: nowrap;
+		animation: fadeIn 0.2s ease;
+	}
 	/* ── Ruler styles ── */
 	.ruler {
 		position: absolute;
@@ -1880,5 +1983,19 @@
 		outline: 1px solid rgb(179, 179, 179);
 		pointer-events: none;
 		z-index: 10;
+	}
+
+	.cell-dimensions-width {
+		position: absolute;
+		outline: 1px solid rgb(194, 115, 115);
+		pointer-events: none;
+		z-index: 11;
+	}
+
+	.cell-dimensions-height {
+		position: absolute;
+		outline: 1px solid rgb(194, 115, 115);
+		pointer-events: none;
+		z-index: 11;
 	}
 </style>
