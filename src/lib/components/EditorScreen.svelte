@@ -17,6 +17,9 @@
 		Link2Off,
 		Link2,
 		Info,
+		FolderCheck,
+		SquareArrowOutUpLeft,
+		SquareArrowOutUpRight,
 		Frame
 	} from 'lucide-svelte';
 	import { onMount } from 'svelte';
@@ -50,10 +53,10 @@
 
 	const hitboxAttributes = {
 		id: 1,
-		x: 200,
-		y: 200,
-		width: 150,
-		height: 150
+		x: 100,
+		y: 100,
+		width: 100,
+		height: 100
 	};
 
 	const rulerSettingAttributes = {
@@ -68,8 +71,8 @@
 	let isSaving = $state(false);
 	let saveIndicatorTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	let row = $state(1);
-	let col = $state(1);
+	let columns = $state(1); // VERTICALLY CALCULATED
+	let rows = $state(1); // HORIZONTALLY CALCULATED
 	let gridX = $state(10);
 	let gridY = $state(10);
 	let gridSize = $state(10);
@@ -119,10 +122,16 @@
 	let modalInputX = $state(0);
 	let modalInputY = $state(0);
 
+	let hitboxInfoOffset = $state<Offset>({ x: 0, y: 0 });
+	let hitboxInfoPosX = $state<number>(200);
+	let hitboxInfoPosY = $state<number>(200);
+	let hitboxInfoOpen = $state(false);
+	let isDraggingInfo = $state(false);
+
 	$effect(() => {
 		const settings = {
-			row,
-			col,
+			rows,
+			columns,
 			gridX,
 			gridY,
 			gridSize,
@@ -136,10 +145,9 @@
 			isGridValuesClamped,
 			crosshairRulerTopOn,
 			crosshairRulerLeftOn,
+			hitboxInfoOpen,
 			rulerWidth,
 			rulerHeight,
-			hitboxX,
-			hitboxY,
 			isDragAction,
 			settingsOpen
 		};
@@ -160,8 +168,8 @@
 	onMount(async () => {
 		const saved = await window.electronAPI.storeGet('editorSettings');
 		if (!saved) return;
-		row = saved.row ?? 1;
-		col = saved.col ?? 1;
+		rows = saved.rows ?? 1;
+		columns = saved.columns ?? 1;
 		gridX = saved.gridX ?? 10;
 		gridY = saved.gridY ?? 10;
 		gridSize = saved.gridSize ?? 10;
@@ -175,10 +183,9 @@
 		isGridValuesClamped = saved.isGridValuesClamped ?? false;
 		crosshairRulerTopOn = saved.crosshairRulerTopOn ?? false;
 		crosshairRulerLeftOn = saved.crosshairRulerLeftOn ?? false;
+		hitboxInfoOpen = saved.hitboxInfoOpen ?? false;
 		rulerWidth = saved.rulerWidth ?? rulerSettingAttributes.width;
 		rulerHeight = saved.rulerHeight ?? rulerSettingAttributes.height;
-		hitboxX = saved.hitboxX ?? hitboxAttributes.x;
-		hitboxY = saved.hitboxY ?? hitboxAttributes.y;
 		isDragAction = saved.isDragAction ?? false;
 		settingsOpen = saved.settingsOpen ?? false;
 	});
@@ -248,6 +255,18 @@
 			};
 			draggingHitboxId = hitboxId;
 		}
+	}
+
+	function startInfoDrag(e: MouseEvent) {
+		e.preventDefault();
+		isDraggingInfo = true;
+		const el = (e.currentTarget as HTMLElement).parentElement;
+		if (!el) return;
+		const rect = el.getBoundingClientRect();
+		hitboxInfoOffset = {
+			x: e.clientX - rect.left,
+			y: e.clientY - rect.top
+		};
 	}
 
 	function stopDrag() {
@@ -321,36 +340,36 @@
 		}, 2500);
 	}
 
-	function incrementRowCount() {
-		if (row >= 100) {
-			showTooltip('Please change max defaults in settings to allow for more spritesheet rows.');
-			return;
-		}
-		row++;
-	}
-
-	function decrementRowCount() {
-		if (row <= 1) {
-			showTooltip('A spritesheet cannot contain less than 1 row(s).');
-			return;
-		}
-		row--;
-	}
-
 	function incrementColCount() {
-		if (col >= 100) {
+		if (columns >= 100) {
 			showTooltip('Please change max defaults in settings to allow for more spritesheet cols.');
 			return;
 		}
-		col++;
+		columns++;
 	}
 
 	function decrementColCount() {
-		if (col <= 1) {
-			showTooltip('A spritesheet cannot contain less than 1 col(s).');
+		if (columns <= 1) {
+			showTooltip('A spritesheet cannot contain less than 1 column(s).');
 			return;
 		}
-		col--;
+		columns--;
+	}
+
+	function incrementRowCount() {
+		if (rows >= 100) {
+			showTooltip('Please change max defaults in settings to allow for more spritesheet rows.');
+			return;
+		}
+		rows++;
+	}
+
+	function decrementRowCount() {
+		if (rows <= 1) {
+			showTooltip('A spritesheet cannot contain less than 1 row(s).');
+			return;
+		}
+		rows--;
 	}
 
 	function incrementScale(modifiedValue: number) {
@@ -467,6 +486,95 @@
 		return Math.round((value - origin) / size) * size + origin;
 	}
 
+	function getHitboxFrameData(h: HitboxProps) {
+		const cellWidth = imgSize.width / columns;
+		const cellHeight = imgSize.height / rows;
+		const cellCol = Math.floor(h.img_x / (cellWidth * scale));
+		const cellRow = Math.floor(h.img_y / (cellHeight * scale));
+
+		return {
+			cell_x: Math.round((h.img_x - cellCol * cellWidth * scale) / scale),
+			cell_y: Math.round((h.img_y - cellRow * cellHeight * scale) / scale),
+			source_w: Math.round(h.width / scale),
+			source_h: Math.round(h.height / scale),
+			cellCol,
+			cellRow
+		};
+	}
+
+	function exportJSON() {
+		if (columns <= 0 || rows <= 0) {
+			showTooltip('Set columns and rows in the right toolbar before exporting.');
+			return;
+		}
+
+		if (hitboxes.length === 0) {
+			showTooltip('No hitboxes were placed. You must add some before exporting.');
+			return;
+		}
+
+		const cellWidth = imgSize.width / columns;
+		const cellHeight = imgSize.height / rows;
+		const totalCells = columns * rows;
+
+		const frames: Array<
+			Array<{
+				name: string;
+				x: number;
+				y: number;
+				w: number;
+				h: number;
+			}>
+		> = Array.from({ length: totalCells }, () => []);
+
+		for (const hitbox of hitboxes) {
+			const cellCol = Math.round(hitbox.img_x / (cellWidth * scale));
+			const cellRow = Math.round(hitbox.img_y / (cellHeight * scale));
+
+			const cellIndex = Math.max(0, Math.min(totalCells - 1, cellRow * columns + cellCol));
+
+			const local_x = Math.round((hitbox.img_x - cellCol * cellWidth * scale) / scale);
+			const local_y = Math.round((hitbox.img_y - cellRow * cellHeight * scale) / scale);
+			const source_w = Math.round(hitbox.width / scale);
+			const source_h = Math.round(hitbox.height / scale);
+
+			frames[cellIndex].push({
+				name: `Hitbox ${hitbox.id}`,
+				x: local_x,
+				y: local_y,
+				w: source_w,
+				h: source_h
+			});
+		}
+
+		const output = {
+			meta: {
+				size: { w: imgSize.width, h: imgSize.height },
+				cell_width: cellWidth,
+				cell_height: cellHeight,
+				columns,
+				rows,
+				total_frames: totalCells
+			},
+			frames
+		};
+		const baseName =
+			filePath
+				?.split(/[\\/]/)
+				.pop()
+				?.replace(/\.[^.]+$/, '') ?? 'hitboxes';
+
+		const blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${baseName}_hitboxes.json`;
+		a.click();
+		URL.revokeObjectURL(url);
+
+		showTooltip(`✓ Exported ${baseName}_hitboxes.json`);
+	}
+
 	$effect(() => {
 		if (isDragging !== 'modal') return;
 
@@ -552,6 +660,27 @@
 	$effect(() => {
 		setScale(inputScale);
 	});
+
+	$effect(() => {
+		if (!isDraggingInfo) return;
+
+		const move = (e: MouseEvent) => {
+			hitboxInfoPosX = e.clientX - hitboxInfoOffset.x;
+			hitboxInfoPosY = e.clientY - hitboxInfoOffset.y;
+		};
+
+		const up = () => {
+			isDraggingInfo = false;
+		};
+
+		document.addEventListener('mousemove', move, { capture: true });
+		document.addEventListener('mouseup', up, { capture: true });
+
+		return () => {
+			document.removeEventListener('mousemove', move, { capture: true });
+			document.removeEventListener('mouseup', up, { capture: true });
+		};
+	});
 </script>
 
 {#if settingsOpen}
@@ -574,7 +703,7 @@
 					</span>
 				</div>
 
-				<div class="settings-row">
+				<div class="settings-rows">
 					<span class="settings-label">
 						{rulerSettingAttributes.width === 80 ? 'Default Width' : 'Width'}
 					</span>
@@ -582,7 +711,7 @@
 					<input type="number" class="settings-input" bind:value={rulerSettingAttributes.width} />
 				</div>
 
-				<div class="settings-row">
+				<div class="settings-rows">
 					<span class="settings-label">
 						{rulerSettingAttributes.height === 80 ? 'Default Height' : 'Height'}
 					</span>
@@ -597,7 +726,7 @@
 					<span class="settings-section-desc"> Controls default image scale increments </span>
 				</div>
 
-				<div class="settings-row">
+				<div class="settings-rows">
 					<span class="settings-label">Increment Value</span>
 
 					<input type="number" class="settings-input" step="0.1" bind:value={modifiedValue} />
@@ -675,6 +804,55 @@
 			</div>
 		{/if}
 
+		{#if hitboxInfoOpen}
+			<div class="hitbox-info-modal" style="left: {hitboxInfoPosX}px; top: {hitboxInfoPosY}px;">
+				<div
+					class="hitbox-info-header"
+					role="presentation"
+					onmousedown={startInfoDrag}
+					style="cursor: {isDraggingInfo ? 'grabbing' : 'grab'}"
+				>
+					<span class="settings-title">Hitbox(s) Info</span>
+					<button class="settings-close" onclick={() => (hitboxInfoOpen = false)}>
+						<X size={16} />
+					</button>
+				</div>
+
+				<div class="hitbox-info-body">
+					{#if hitboxes.length === 0}
+						<span class="rt-info-label">No hitboxes placed</span>
+					{:else}
+						{#each hitboxes as h (h.id)}
+							{@const fd = getHitboxFrameData(h)}
+							<div class="rt-info-frame">
+								<div class="rt-rows">
+									<span class="rt-label">Frame Id:</span>
+									<span class="rt-value">Frame {h.id}</span>
+								</div>
+								<div class="rt-rows">
+									<span class="rt-label">Frame X:</span>
+									<span class="rt-value">{fd.cell_x.toFixed(2)}px</span>
+								</div>
+								<div class="rt-rows">
+									<span class="rt-label">Frame Y:</span>
+									<span class="rt-value">{fd.cell_y.toFixed(2)}px</span>
+								</div>
+								<div class="rt-rows">
+									<span class="rt-label">Frame W:</span>
+									<span class="rt-value">{fd.source_w.toFixed(2)}px</span>
+								</div>
+								<div class="rt-rows">
+									<span class="rt-label">Frame H:</span>
+									<span class="rt-value">{fd.source_h.toFixed(2)}px</span>
+								</div>
+								<hr class="rt-divider" />
+							</div>
+						{/each}
+					{/if}
+				</div>
+			</div>
+		{/if}
+
 		<button class:active={gridOn} onclick={() => (gridOn = !gridOn)}>
 			<Grid3x3 size={18} />
 		</button>
@@ -697,6 +875,18 @@
 			<Frame size={18} />
 		</button>
 		<div class="toolbar-spacer"></div>
+
+		<button
+			class="export-btn"
+			onclick={() => exportJSON()}
+			disabled={hitboxes.length === 0 || columns <= 0 || rows <= 0}
+		>
+			<!-- <span>Export JSON</span> -->
+			<FolderCheck size={18} />
+		</button>
+
+		<hr class="rt-divider" />
+
 		<button onclick={() => (settingsOpen = true)}>
 			<Settings size={18} />
 		</button>
@@ -711,6 +901,17 @@
 					- No Image Loaded -
 				{/if}
 			</p>
+			<div class="indicators">
+				<span class="indicator-label">Clamp: </span>
+				<span class="rt-snap-indicator" class:rt-snap-active={isGridValuesClamped}
+					>{isGridValuesClamped ? 'on' : 'off'}</span
+				>
+			</div>
+
+			<div class="indicators">
+				<span class="indicator-label">Snap: </span>
+				<span class="rt-snap-indicator" class:rt-snap-active={gridOn}>{gridOn ? 'on' : 'off'}</span>
+			</div>
 			{#if isSaving}
 				<span class="tooltip-saving">● Saving...</span>
 			{/if}
@@ -807,8 +1008,8 @@
 
 					<button onclick={() => resetAttributes()}>Reset Hitbox Attributes</button>
 
-					<div class="input-col">
-						<div class="input-row">
+					<div class="input-columns">
+						<div class="input-rows">
 							<label for="hitbox-x">X:</label>
 							<input
 								id="hitbox-x"
@@ -845,7 +1046,7 @@
 							/>
 						</div>
 
-						<div class="input-row">
+						<div class="input-rows">
 							<label for="hitbox-y">Y:</label>
 							<input
 								id="hitbox-y"
@@ -883,15 +1084,15 @@
 						</div>
 					</div>
 
-					<div class="input-col">
-						<div class="input-row">
+					<div class="input-columns">
+						<div class="input-rows">
 							<label for="hitbox-width">Width:</label>
 							<input
 								id="hitbox-width"
 								type="number"
 								class="input-styles-modal"
 								value={hitboxes.find((h) => h.id === currentHitboxModal)?.width ?? hitboxWidth}
-								step={1}
+								step={scale}
 								oninput={(e) => {
 									const v = Number((e.target as HTMLInputElement).value);
 									hitboxes = hitboxes.map((h) =>
@@ -911,14 +1112,14 @@
 							/>
 						</div>
 
-						<div class="input-row">
+						<div class="input-rows">
 							<label for="hitbox-height">Height:</label>
 							<input
 								id="hitbox-height"
 								type="number"
 								class="input-styles-modal"
 								value={hitboxes.find((h) => h.id === currentHitboxModal)?.height ?? hitboxHeight}
-								step={1}
+								step={scale}
 								oninput={(e) => {
 									const v = Number((e.target as HTMLInputElement).value);
 									hitboxes = hitboxes.map((h) =>
@@ -968,11 +1169,15 @@
 				<div
 					class="cell-dimensions-width"
 					style="
-				width: {(imgSize?.width / row) * scale}px;
-				height: 2px; top: 0px; left: 0px;
+				width: {(imgSize?.width / columns) * scale}px;
+				height: 1px; 
+				top: calc(50% - {(imgSize.height * scale + spaceFromImg) / 2}px);
+				left: calc(50% - {(imgSize.width * scale) / 2}px);
 				"
 				>
-					Source W:{imgSize?.width / row}
+					<span class="ruler-tip-left"></span>
+					<span class="cell-size-tooltip-w">Source W:{(imgSize?.width / columns).toFixed(2)}</span>
+					<span class="ruler-tip-right"></span>
 				</div>
 			{/if}
 
@@ -981,16 +1186,26 @@
 					class="cell-dimensions-height"
 					style="
 					width: 1px; 
-					height: {(imgSize?.height / col) * scale}px; 
+					height: {(imgSize?.height / rows) * scale}px; 
 					top: calc(50% - {(imgSize.height * scale) / 2}px);
 					left: calc(50% - {(imgSize.width * scale + spaceFromImg) / 2}px);
 					"
 				>
-					Source H:{imgSize?.height / col}
+					<span class="ruler-tip-top"></span>
+					<span class="cell-size-tooltip-h">Source H:{(imgSize?.height / rows).toFixed(2)}</span>
+					<span class="ruler-tip-bottom"></span>
 				</div>
 			{/if}
 
-			{#each hitboxes as { id, origin_x, origin_y, width, height } (id)}
+			{#each hitboxes as { id, origin_x, origin_y, width, height, img_x, img_y } (id)}
+				{@const cellWidth = imgSize.width / columns}
+				{@const cellHeight = imgSize.height / rows}
+				{@const cellCol = Math.floor(img_x / (cellWidth * scale))}
+				{@const cellRow = Math.floor(img_y / (cellHeight * scale))}
+				{@const cell_x = Math.round((img_x - cellCol * cellWidth * scale) / scale)}
+				{@const cell_y = Math.round((img_y - cellRow * cellHeight * scale) / scale)}
+				{@const source_w = Math.round(width / scale)}
+				{@const source_h = Math.round(height / scale)}
 				<div
 					data-id={id}
 					class="box"
@@ -1008,7 +1223,10 @@
 					onmousedown={(e) => handleHitboxMouseDown(e, id)}
 					onmouseup={() => handleHitboxMouseUp(id)}
 				>
-					Hitbox: {id}
+					<!-- THE HITBOX POSITIONS HAVE TO BE RELATIVE TO THE "CELLS" DIMENSIONS. -->
+					<span class="hitbox-label">Hitbox: {id}</span>
+					<span class="hitbox-coords">x:{cell_x}, y:{cell_y}</span>
+					<span class="hitbox-dims">w:{source_w}, h:{source_h}</span>
 				</div>
 			{/each}
 		</div>
@@ -1020,7 +1238,7 @@
 
 		<hr class="rt-divider" />
 
-		<div class="rt-row">
+		<div class="rt-rows">
 			<span class="rt-label">Scale: </span>
 			<div
 				class="rt-stepper"
@@ -1035,7 +1253,7 @@
 			</div>
 		</div>
 
-		<div class="rt-row rows">
+		<div class="rt-rows rows">
 			<span class="rt-label">Incremental Value: </span>
 			<div>
 				<input
@@ -1052,14 +1270,14 @@
 
 		<div class="rt-img-info">
 			<span class="rt-info-label">Source</span>
-			<div class="rt-info-row">
+			<div class="rt-info-rows">
 				<span class="rt-info-key">W</span>
 				<span class="rt-info-val">{imgSize?.width ?? 0}px</span>
 				<span class="rt-info-key">H</span>
 				<span class="rt-info-val">{imgSize?.height ?? 0}px</span>
 			</div>
 			<span class="rt-info-label">Scaled</span>
-			<div class="rt-info-row">
+			<div class="rt-info-rows">
 				<span class="rt-info-key">W</span>
 				<span class="rt-info-val">{imgSize ? imgSize.width * inputScale : 0}px</span>
 				<span class="rt-info-key">H</span>
@@ -1073,7 +1291,7 @@
 
 		<hr class="rt-divider" />
 
-		<div class="rt-row">
+		<div class="rt-rows">
 			<span class="rt-label">Width: </span>
 			<div
 				class="rt-stepper"
@@ -1098,7 +1316,7 @@
 			</div>
 		</div>
 
-		<div class="rt-row">
+		<div class="rt-rows">
 			<span class="rt-label">Height: </span>
 			<div
 				class="rt-stepper"
@@ -1129,7 +1347,7 @@
 
 		<hr class="rt-divider" />
 
-		<div class="rt-row">
+		<div class="rt-rows">
 			<span class="rt-label">Scale: </span>
 			<div
 				class="rt-stepper"
@@ -1156,7 +1374,7 @@
 		</div>
 
 		<div class="rt-clamp-container">
-			<div class="rt-row">
+			<div class="rt-rows">
 				<span class="rt-label">X: </span>
 				<div
 					class="rt-stepper"
@@ -1197,7 +1415,7 @@
 				{/if}
 			</button>
 
-			<div class="rt-row">
+			<div class="rt-rows">
 				<span class="rt-label">Y: </span>
 				<div
 					class="rt-stepper"
@@ -1227,7 +1445,7 @@
 			</div>
 		</div>
 
-		<div class="rt-row rows">
+		<div class="rt-rows rows">
 			<span class="rt-label">Incremental Value: </span>
 			<div>
 				<input
@@ -1242,25 +1460,27 @@
 			</div>
 		</div>
 
-		<div class="rt-row">
-			<span class="rt-label rt-label-sm">Clamp: </span>
-			<span class="rt-snap-indicator" class:rt-snap-active={isGridValuesClamped}
-				>{isGridValuesClamped ? 'on' : 'off'}</span
-			>
-		</div>
-
-		<div class="rt-row">
-			<span class="rt-label rt-label-sm">Snap: </span>
-			<span class="rt-snap-indicator" class:rt-snap-active={gridOn}>{gridOn ? 'on' : 'off'}</span>
-		</div>
-
 		<hr class="rt-divider" />
 
 		<span class="right-toolbar-title">Spritesheet</span>
 
 		<hr class="rt-divider" />
 
-		<div class="rt-row">
+		<div class="rt-rows">
+			<span class="rt-label">Columns: </span>
+			<div
+				class="rt-stepper"
+				onwheel={(e) => {
+					e.preventDefault();
+					e.deltaY < 0 ? incrementColCount() : decrementColCount();
+				}}
+			>
+				<SquareMinus size={16} class="rt-step-icon" onclick={() => decrementColCount()} />
+				<input class="rt-value-input" type="text" bind:value={columns} />
+				<SquarePlus size={16} class="rt-step-icon" onclick={() => incrementColCount()} />
+			</div>
+		</div>
+		<div class="rt-rows">
 			<span class="rt-label">Rows: </span>
 			<div
 				class="rt-stepper"
@@ -1270,22 +1490,8 @@
 				}}
 			>
 				<SquareMinus size={16} class="rt-step-icon" onclick={() => decrementRowCount()} />
-				<input class="rt-value-input" type="text" bind:value={row} />
+				<input class="rt-value-input" type="text" bind:value={rows} />
 				<SquarePlus size={16} class="rt-step-icon" onclick={() => incrementRowCount()} />
-			</div>
-		</div>
-		<div class="rt-row">
-			<span class="rt-label">Cols: </span>
-			<div
-				class="rt-stepper"
-				onwheel={(e) => {
-					e.preventDefault();
-					e.deltaY < 0 ? incrementColCount() : decrementColCount();
-				}}
-			>
-				<SquareMinus size={16} class="rt-step-icon" onclick={() => decrementColCount()} />
-				<input class="rt-value-input" type="text" bind:value={col} />
-				<SquarePlus size={16} class="rt-step-icon" onclick={() => incrementColCount()} />
 			</div>
 		</div>
 
@@ -1295,23 +1501,57 @@
 
 		<hr class="rt-divider" />
 
-		<div class="rt-row">
+		<div class="rt-rows">
 			<span class="rt-label">Count: </span>
-			<span class="rt-value">{hitboxes.length}</span>
+			<span class="rt-value">{hitboxes.length} Hitboxe(s)</span>
 		</div>
 
-		<div class="rt-row">
+		<div class="rt-rows">
 			<span class="rt-label">Cell Width: </span>
-			<span class="rt-value">{(imgSize?.width / row).toFixed(2)}px</span>
+			<span class="rt-value">{(imgSize?.width / columns).toFixed(2)}px</span>
 		</div>
-		<div class="rt-row">
+
+		<div class="rt-rows">
 			<span class="rt-label">Cell Height: </span>
-			<span class="rt-value">{(imgSize?.height / col).toFixed(2)}px</span>
+			<span class="rt-value">{(imgSize?.height / rows).toFixed(2)}px</span>
 		</div>
+
+		<hr class="rt-divider" />
+
+		<span class="right-toolbar-title">Hitbox(s) Info</span>
+
+		<hr class="rt-divider" />
+
+		<button class="export-btn" onclick={() => (hitboxInfoOpen = !hitboxInfoOpen)}>
+			{#if hitboxInfoOpen}
+				<span>Hide Info</span>
+				<SquareArrowOutUpLeft size={14} />
+			{:else}
+				<span>Show Info</span>
+				<SquareArrowOutUpRight size={14} />
+			{/if}
+		</button>
 	</div>
 </div>
 
 <style>
+	.indicators {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 2px;
+		position: relative;
+		padding: 0px 5px 0px 5px;
+	}
+
+	.indicator-label {
+		font-size: 13px;
+		font-weight: 600;
+		color: #e5e7eb;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+
 	.editor-root {
 		display: grid;
 		grid-template-columns: 80px 1fr 195px;
@@ -1356,7 +1596,7 @@
 
 	.sub-group {
 		display: flex;
-		flex-direction: row;
+		flex-direction: rows;
 		align-items: center;
 		width: 100%;
 		padding-left: 6px;
@@ -1405,7 +1645,13 @@
 		padding: 1rem 0.5rem;
 		gap: 0.75rem;
 		border-left: 1px solid #1f2937;
+		overflow-y: auto;
 		box-sizing: border-box;
+		scrollbar-width: none; /* Firefox */
+	}
+
+	.right-toolbar::-webkit-scrollbar {
+		display: none; /* Chrome, Edge, Electron */
 	}
 
 	.right-toolbar-title {
@@ -1423,7 +1669,7 @@
 		margin: 0;
 	}
 
-	.rt-row {
+	.rt-rows {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1466,12 +1712,8 @@
 		flex-shrink: 0;
 	}
 
-	.rt-label-sm {
-		font-size: 16px;
-	}
-
 	.rt-snap-indicator {
-		font-size: 12px;
+		font-size: 9px;
 		font-weight: 600;
 		padding: 2px 8px;
 		border-radius: 6px;
@@ -1556,8 +1798,20 @@
 		letter-spacing: 0.06em;
 	}
 
-	.rt-info-row {
+	.rt-info-rows {
 		display: flex;
+		align-items: center;
+		gap: 6px;
+		background: #1f2937;
+		border: 1px solid #374151;
+		border-radius: 6px;
+		padding: 3px 8px;
+	}
+
+	.rt-info-frame {
+		width: 90%;
+		display: flex;
+		flex-direction: column;
 		align-items: center;
 		gap: 6px;
 		background: #1f2937;
@@ -1641,6 +1895,29 @@
 		background: rgba(100, 220, 255, 0.2);
 	}
 
+	.hitbox-label {
+		display: block;
+		font-size: 12px;
+		color: rgb(22, 210, 235);
+		user-select: none;
+	}
+
+	.hitbox-coords {
+		display: block;
+		font-size: 10px;
+		font-weight: bold;
+		color: #b1b1b1;
+		user-select: none;
+	}
+
+	.hitbox-dims {
+		display: block;
+		font-size: 10px;
+		font-weight: bold;
+		color: #b1b1b1;
+		user-select: none;
+	}
+
 	.entering {
 		animation: fadeIn 0.3s ease forwards;
 	}
@@ -1697,13 +1974,26 @@
 		font-size: 14px;
 	}
 
-	.input-col {
+	.export-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: white;
+		border: #10141d;
+		border-radius: 6px;
+		gap: 6px;
+		background: #2a2f3a;
+		padding: 5px 6px;
+		margin: 10px 0px 0px 0px;
+	}
+
+	.input-columns {
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
 	}
 
-	.input-row {
+	.input-rows {
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
@@ -1817,6 +2107,49 @@
 		pointer-events: none;
 		z-index: 99;
 	}
+	/* ── hitbox modal ── */
+	.hitbox-info-modal {
+		position: fixed;
+		z-index: 2001;
+		background: #1f2937;
+		border: 1px solid #374151;
+		border-radius: 12px;
+		width: 260px;
+		max-height: 80%;
+		display: flex;
+		flex-direction: column;
+		color: white;
+		animation: modalIn 0.2s ease;
+	}
+
+	.hitbox-info-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1rem 1.25rem;
+		border-bottom: 1px solid #374151;
+		flex-shrink: 0;
+	}
+
+	.hitbox-info-body {
+		flex: 1;
+		padding: 1rem;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		scrollbar-width: none;
+	}
+
+	.hitbox-info-body::-webkit-scrollbar {
+		display: none;
+	}
+
+	.rt-info-frame {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
 
 	/* ── Settings modal ── */
 	.settings-backdrop {
@@ -1919,9 +2252,9 @@
 		color: #6b7280;
 	}
 
-	/* row */
+	/* rows */
 
-	.settings-row {
+	.settings-rows {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1985,17 +2318,76 @@
 		z-index: 10;
 	}
 
+	/* Cell styles */
 	.cell-dimensions-width {
 		position: absolute;
-		outline: 1px solid rgb(194, 115, 115);
+		outline: 1px solid rgb(185, 115, 194);
 		pointer-events: none;
 		z-index: 11;
+		background-color: rgb(185, 115, 194);
 	}
 
 	.cell-dimensions-height {
 		position: absolute;
-		outline: 1px solid rgb(194, 115, 115);
+		outline: 1px solid rgb(185, 115, 194);
 		pointer-events: none;
 		z-index: 11;
+		background-color: rgb(185, 115, 194);
+	}
+
+	.cell-size-tooltip-w {
+		top: -25px;
+		left: 5%;
+		position: relative;
+		font-size: 12px;
+		color: #c032b9;
+	}
+
+	.cell-size-tooltip-h {
+		display: block;
+		position: relative;
+		top: 85%;
+		left: -15px;
+		transform: rotate(0.75turn);
+		font-size: 12px;
+		color: #c032b9;
+		white-space: nowrap;
+	}
+	.ruler-tip-top {
+		position: absolute;
+		z-index: 11;
+		width: 15px;
+		transform: translateX(-45%);
+		outline: 1px solid rgb(185, 115, 194);
+		background: rgb(185, 115, 194);
+	}
+
+	.ruler-tip-bottom {
+		position: absolute;
+		z-index: 11;
+		width: 15px;
+		bottom: 0px;
+		transform: translateX(-45%);
+		outline: 1px solid rgb(185, 115, 194);
+		background: rgb(185, 115, 194);
+	}
+
+	.ruler-tip-left {
+		position: absolute;
+		z-index: 11;
+		height: 15px;
+		transform: translateY(-45%);
+		outline: 1px solid rgb(185, 115, 194);
+		background: rgb(185, 115, 194);
+	}
+
+	.ruler-tip-right {
+		position: absolute;
+		z-index: 11;
+		height: 15px;
+		right: 0px;
+		transform: translateY(-45%);
+		outline: 1px solid rgb(185, 115, 194);
+		background: rgb(185, 115, 194);
 	}
 </style>
