@@ -1,14 +1,15 @@
-node_modules
+# Build outputs
+build/
+dist/
+release/
 
-# Output
-.output
-.vercel
-.netlify
-.wrangler
-/.svelte-kit
-/build
+# Node modules
+node_modules/
 
-# OS
+# Electron builder cache
+.electron-builder.env
+
+# OS files
 .DS_Store
 Thumbs.db
 

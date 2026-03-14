@@ -1,7 +1,7 @@
 {
 	"name": "hitboxer2.0",
 	"private": true,
-	"version": "2.5.1",
+	"version": "3.0.0",
 	"type": "module",
 	"main": "electron/main.js",
 	"scripts": {
@@ -26,7 +26,7 @@
 		"@types/node": "^24",
 		"concurrently": "^9.2.1",
 		"electron": "^39.2.7",
-		"electron-builder": "^26.4.0",
+		"electron-builder": "^26.8.1",
 		"eslint-config-prettier": "^10.1.8",
 		"globals": "^16.5.0",
 		"prettier": "^3.7.4",
@@ -43,10 +43,35 @@
 		"productName": "Hitboxer",
 		"files": [
 			"build/**/*",
-			"electron/**/*"
+			"electron/**/*",
+			"node_modules/**/*"
 		],
+		"win": {
+			"target": [
+				{
+					"target": "nsis",
+					"arch": [
+						"x64"
+					]
+				}
+			],
+			"icon": "static/icon.ico"
+		},
+		"mac": {
+			"target": "dmg",
+			"icon": "static/icon.icns"
+		},
+		"linux": {
+			"target": "AppImage",
+			"icon": "static/icon.png"
+		},
+		"nsis": {
+			"oneClick": false,
+			"allowToChangeInstallationDirectory": true
+		},
 		"directories": {
-			"buildResources": "assets"
+			"buildResources": "assets",
+			"output": "release"
 		}
 	},
 	"dependencies": {
