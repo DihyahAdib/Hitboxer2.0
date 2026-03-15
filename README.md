@@ -66,3 +66,18 @@ Download `Hitboxer Setup 3.0.0.exe`, run the installer, and launch Hitboxer from
 ### Built with
 
 Electron + SvelteKit + TypeScript
+
+## Coming soon?...
+
+- Bezier curve customization to the edges of hitboxes to allow for different collision types in the game.
+- More base shapes instead of just squares & rectangles, like circles, ovals, & quadrilaterals!
+- Complete Control: allowing users to tweak literally any of their settings, like
+  - App color and theme.
+  - How much values can increment by, base values, max values, and defaults.
+  - Different UI layouts for productivity and docking stations for modals.
+
+ ## And my most anticipated...
+ 
+### Custom JSON configuration!
+
+I plan to make a feature that will allow you to build how you want your JSON file to be with a clean UI and drag-and-drop blocks for how to export. just a cherry on top for complete control over your hitboxer journey!
