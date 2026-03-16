@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import Store from 'electron-store';
 import { fileURLToPath } from 'url';
 
@@ -107,11 +108,11 @@ function createWindow() {
 		mainWindow.loadURL('http://localhost:5174');
 		mainWindow.webContents.openDevTools();
 	} else {
-    mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
-    mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.openDevTools();
-    });
-}
+		mainWindow.loadURL('app://-/');
+		mainWindow.webContents.on('did-finish-load', () => {
+			mainWindow.webContents.openDevTools();
+		});
+	}
 
 	const menu = createMenu(mainWindow);
 
@@ -140,8 +141,30 @@ function createWindow() {
 	});
 }
 
+// app.whenReady().then(() => {
+// 	createWindow();
+// 	app.on('activate', () => {
+// 		if (BrowserWindow.getAllWindows().length === 0) {
+// 			createWindow();
+// 		}
+// 	});
+// });
+
 app.whenReady().then(() => {
+	protocol.handle('app', (request) => {
+		const url = new URL(request.url);
+		let pathname = decodeURIComponent(url.pathname);
+
+		if (pathname === '/' || pathname === '') {
+			pathname = '/index.html';
+		}
+
+		const filePath = path.join(__dirname, '../build', pathname);
+		return net.fetch(`file://${filePath}`);
+	});
+
 	createWindow();
+
 	app.on('activate', () => {
 		if (BrowserWindow.getAllWindows().length === 0) {
 			createWindow();
@@ -155,7 +178,6 @@ app.on('window-all-closed', () => {
 	}
 });
 
-// IPC Handlers
 ipcMain.handle('open-image-dialog', async () => {
 	const result = await dialog.showOpenDialog({
 		properties: ['openFile'],
