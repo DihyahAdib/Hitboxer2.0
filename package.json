@@ -1,9 +1,10 @@
 {
 	"name": "hitboxer2.0",
 	"private": true,
-	"version": "3.0.0",
+	"version": "3.0.4",
 	"type": "module",
 	"main": "electron/main.js",
+	"description": "A hitbox creation tool",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",

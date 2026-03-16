@@ -107,8 +107,11 @@ function createWindow() {
 		mainWindow.loadURL('http://localhost:5174');
 		mainWindow.webContents.openDevTools();
 	} else {
-		mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
-	}
+    mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
+    mainWindow.webContents.on('did-finish-load', () => {
+        mainWindow.webContents.openDevTools();
+    });
+}
 
 	const menu = createMenu(mainWindow);
 
@@ -165,4 +168,4 @@ ipcMain.handle('open-image-dialog', async () => {
 
 ipcMain.handle('store-get', (event, key) => store.get(key));
 ipcMain.handle('store-del', (event, key) => store.delete(key));
-ipcMain.on('store-set', (event, key, value) => store.set(key, value));		
+ipcMain.on('store-set', (event, key, value) => store.set(key, value));

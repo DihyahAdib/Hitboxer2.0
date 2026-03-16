@@ -31,7 +31,9 @@ declare module '$env/static/private' {
 	export const APPDATA: string;
 	export const ChocolateyInstall: string;
 	export const ChocolateyLastPathUpdate: string;
+	export const CHROME_CRASHPAD_PIPE_NAME: string;
 	export const COLOR: string;
+	export const COLORTERM: string;
 	export const COMMONPROGRAMFILES: string;
 	export const CommonProgramW6432: string;
 	export const COMPUTERNAME: string;
@@ -40,14 +42,17 @@ declare module '$env/static/private' {
 	export const DISPLAY: string;
 	export const DriverData: string;
 	export const EDITOR: string;
+	export const EFC_17300_1592913036: string;
+	export const EFC_17300_344590478: string;
 	export const EXEPATH: string;
+	export const GIT_ASKPASS: string;
 	export const HOME: string;
 	export const HOMEDRIVE: string;
 	export const HOMEPATH: string;
 	export const HOSTNAME: string;
 	export const INFOPATH: string;
 	export const INIT_CWD: string;
-	export const LC_CTYPE: string;
+	export const LANG: string;
 	export const LOCALAPPDATA: string;
 	export const LOGONSERVER: string;
 	export const MANPATH: string;
@@ -85,7 +90,6 @@ declare module '$env/static/private' {
 	export const NPM_PREFIX_JS: string;
 	export const NPM_PREFIX_NPM_CLI_JS: string;
 	export const NUMBER_OF_PROCESSORS: string;
-	export const OLDPWD: string;
 	export const OneDrive: string;
 	export const OneDriveConsumer: string;
 	export const ORIGINAL_PATH: string;
@@ -109,6 +113,9 @@ declare module '$env/static/private' {
 	export const PSModulePath: string;
 	export const PUBLIC: string;
 	export const PWD: string;
+	export const PYTHONSTARTUP: string;
+	export const PYTHON_BASIC_REPL: string;
+	export const SESSIONNAME: string;
 	export const SHELL: string;
 	export const SHLVL: string;
 	export const SSH_ASKPASS: string;
@@ -124,6 +131,11 @@ declare module '$env/static/private' {
 	export const USERDOMAIN_ROAMINGPROFILE: string;
 	export const USERNAME: string;
 	export const USERPROFILE: string;
+	export const VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
+	export const VSCODE_GIT_ASKPASS_MAIN: string;
+	export const VSCODE_GIT_ASKPASS_NODE: string;
+	export const VSCODE_GIT_IPC_HANDLE: string;
+	export const VSCODE_PYTHON_AUTOACTIVATE_GUARD: string;
 	export const WINDIR: string;
 	export const _: string;
 }
@@ -160,7 +172,9 @@ declare module '$env/dynamic/private' {
 		APPDATA: string;
 		ChocolateyInstall: string;
 		ChocolateyLastPathUpdate: string;
+		CHROME_CRASHPAD_PIPE_NAME: string;
 		COLOR: string;
+		COLORTERM: string;
 		COMMONPROGRAMFILES: string;
 		CommonProgramW6432: string;
 		COMPUTERNAME: string;
@@ -169,14 +183,17 @@ declare module '$env/dynamic/private' {
 		DISPLAY: string;
 		DriverData: string;
 		EDITOR: string;
+		EFC_17300_1592913036: string;
+		EFC_17300_344590478: string;
 		EXEPATH: string;
+		GIT_ASKPASS: string;
 		HOME: string;
 		HOMEDRIVE: string;
 		HOMEPATH: string;
 		HOSTNAME: string;
 		INFOPATH: string;
 		INIT_CWD: string;
-		LC_CTYPE: string;
+		LANG: string;
 		LOCALAPPDATA: string;
 		LOGONSERVER: string;
 		MANPATH: string;
@@ -214,7 +231,6 @@ declare module '$env/dynamic/private' {
 		NPM_PREFIX_JS: string;
 		NPM_PREFIX_NPM_CLI_JS: string;
 		NUMBER_OF_PROCESSORS: string;
-		OLDPWD: string;
 		OneDrive: string;
 		OneDriveConsumer: string;
 		ORIGINAL_PATH: string;
@@ -238,6 +254,9 @@ declare module '$env/dynamic/private' {
 		PSModulePath: string;
 		PUBLIC: string;
 		PWD: string;
+		PYTHONSTARTUP: string;
+		PYTHON_BASIC_REPL: string;
+		SESSIONNAME: string;
 		SHELL: string;
 		SHLVL: string;
 		SSH_ASKPASS: string;
@@ -253,6 +272,11 @@ declare module '$env/dynamic/private' {
 		USERDOMAIN_ROAMINGPROFILE: string;
 		USERNAME: string;
 		USERPROFILE: string;
+		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
+		VSCODE_GIT_ASKPASS_MAIN: string;
+		VSCODE_GIT_ASKPASS_NODE: string;
+		VSCODE_GIT_IPC_HANDLE: string;
+		VSCODE_PYTHON_AUTOACTIVATE_GUARD: string;
 		WINDIR: string;
 		_: string;
 		[key: `PUBLIC_${string}`]: undefined;
