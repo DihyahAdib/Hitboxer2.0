@@ -1,0 +1,65 @@
+name: Build desktop app
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }} / ${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+            artifact_name: windows-build
+          - os: macos-latest
+            target: mac
+            artifact_name: mac-build
+          - os: ubuntu-latest
+            target: linux
+            artifact_name: linux-build
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        shell: bash
+        run: |
+          if [ "${{ matrix.target }}" = "win" ]; then
+            npx electron-builder --win nsis --publish never
+          elif [ "${{ matrix.target }}" = "mac" ]; then
+            npx electron-builder --mac dmg zip --publish never
+          else
+            npx electron-builder --linux AppImage --publish never
+          fi
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            release/**
+          if-no-files-found: error
