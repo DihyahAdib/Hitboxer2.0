@@ -22,7 +22,6 @@
 	"devDependencies": {
 		"@eslint/compat": "^1.4.0",
 		"@eslint/js": "^9.39.1",
-		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.49.1",
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
@@ -61,7 +60,10 @@
 			"icon": "static/icon.ico"
 		},
 		"mac": {
-			"target": "dmg",
+			"target": [
+				"dmg",
+				"zip"
+			],
 			"icon": "static/icon.icns"
 		},
 		"linux": {
