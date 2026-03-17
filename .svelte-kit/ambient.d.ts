@@ -42,8 +42,8 @@ declare module '$env/static/private' {
 	export const DISPLAY: string;
 	export const DriverData: string;
 	export const EDITOR: string;
-	export const EFC_17300_1592913036: string;
-	export const EFC_17300_344590478: string;
+	export const EFC_7808_1592913036: string;
+	export const EFC_7808_344590478: string;
 	export const EXEPATH: string;
 	export const GIT_ASKPASS: string;
 	export const HOME: string;
@@ -183,8 +183,8 @@ declare module '$env/dynamic/private' {
 		DISPLAY: string;
 		DriverData: string;
 		EDITOR: string;
-		EFC_17300_1592913036: string;
-		EFC_17300_344590478: string;
+		EFC_7808_1592913036: string;
+		EFC_7808_344590478: string;
 		EXEPATH: string;
 		GIT_ASKPASS: string;
 		HOME: string;

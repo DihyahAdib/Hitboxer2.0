@@ -118,7 +118,7 @@ function createWindow() {
 
 	Menu.setApplicationMenu(null);
 
-	ipcMain.on('set-menu-visible', (event, visible) => {
+	ipcMain.on('set-menu-visible', (_event, visible) => {
 		if (visible) {
 			Menu.setApplicationMenu(menu);
 		} else {
@@ -141,15 +141,6 @@ function createWindow() {
 	});
 }
 
-// app.whenReady().then(() => {
-// 	createWindow();
-// 	app.on('activate', () => {
-// 		if (BrowserWindow.getAllWindows().length === 0) {
-// 			createWindow();
-// 		}
-// 	});
-// });
-
 app.whenReady().then(() => {
 	protocol.handle('app', (request) => {
 		const url = new URL(request.url);
@@ -157,6 +148,8 @@ app.whenReady().then(() => {
 
 		if (pathname === '/' || pathname === '') {
 			pathname = '/index.html';
+		} else {
+			pathname = pathname.replace(/^\/+/, '');
 		}
 
 		const filePath = path.join(__dirname, '../build', pathname);

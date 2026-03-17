@@ -1,6 +1,7 @@
 {
 	"name": "hitboxer2.0",
 	"private": true,
+	"author": "NoCapStudios",
 	"version": "3.1.5",
 	"type": "module",
 	"main": "electron/main.js",
