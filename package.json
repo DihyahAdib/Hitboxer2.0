@@ -12,6 +12,8 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5174 && cross-env NODE_ENV=development electron .\"",
 		"electron:build": "npm run build && electron-builder",
+		"dist:win": "npm run build && electron-builder --win nsis",
+		"dist:mac": "npm run build && electron-builder --mac dmg zip",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
