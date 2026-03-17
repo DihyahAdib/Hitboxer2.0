@@ -1,7 +1,7 @@
 {
 	"name": "hitboxer2.0",
 	"private": true,
-	"version": "3.1.0",
+	"version": "3.1.5",
 	"type": "module",
 	"main": "electron/main.js",
 	"description": "A hitbox creation tool",
@@ -14,6 +14,7 @@
 		"electron:build": "npm run build && electron-builder",
 		"dist:win": "npm run build && electron-builder --win nsis",
 		"dist:mac": "npm run build && electron-builder --mac dmg zip",
+		"dist:linux": "npm run build && electron-builder --linux AppImage",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
