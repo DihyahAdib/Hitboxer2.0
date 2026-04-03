@@ -106,12 +106,12 @@ function createWindow() {
 
 	if (isDev) {
 		mainWindow.loadURL('http://localhost:5174');
-		mainWindow.webContents.openDevTools();
+		// mainWindow.webContents.openDevTools();
 	} else {
 		mainWindow.loadURL('app://-/');
-		mainWindow.webContents.on('did-finish-load', () => {
-			mainWindow.webContents.openDevTools();
-		});
+		// mainWindow.webContents.on('did-finish-load', () => {
+		// 	mainWindow.webContents.openDevTools();
+		// });
 	}
 
 	const menu = createMenu(mainWindow);

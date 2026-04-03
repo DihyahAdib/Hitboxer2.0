@@ -2,7 +2,7 @@
 	"name": "hitboxer2.0",
 	"private": true,
 	"author": "NoCapStudios",
-	"version": "3.1.5",
+	"version": "3.1.6",
 	"type": "module",
 	"main": "electron/main.js",
 	"description": "A hitbox creation tool",

@@ -1011,24 +1011,73 @@
 					<div class="input-columns">
 						<div class="input-rows">
 							<label for="hitbox-x">X:</label>
-							<input
-								id="hitbox-x"
-								type="number"
-								class="input-styles-modal"
-								step={1}
-								bind:value={modalInputX}
-								onchange={() => {
+							<div
+								class="rt-stepper"
+								onwheel={(e) => {
+									e.preventDefault();
 									const editorEl = document.querySelector('.canvas');
 									if (!editorEl) return;
 									const r = editorEl.getBoundingClientRect();
 									const imgLeft = r.width / 2 - (imgSize.width * scale) / 2;
+									modalInputX = e.deltaY < 0 ? modalInputX + 1 : modalInputX - 1;
 									hitboxes = hitboxes.map((h) =>
 										h.id === currentHitboxModal
 											? { ...h, img_x: modalInputX, origin_x: modalInputX + imgLeft }
 											: h
 									);
 								}}
-							/>
+							>
+								<SquareMinus
+									size={18}
+									class="rt-step-icon"
+									onclick={() => {
+										const editorEl = document.querySelector('.canvas');
+										if (!editorEl) return;
+										const r = editorEl.getBoundingClientRect();
+										const imgLeft = r.width / 2 - (imgSize.width * scale) / 2;
+										modalInputX = modalInputX - 1;
+										hitboxes = hitboxes.map((h) =>
+											h.id === currentHitboxModal
+												? { ...h, img_x: modalInputX, origin_x: modalInputX + imgLeft }
+												: h
+										);
+									}}
+								/>
+								<input
+									id="hitbox-x"
+									type="text"
+									class="rt-value-input"
+									step={1}
+									bind:value={modalInputX}
+									onchange={() => {
+										const editorEl = document.querySelector('.canvas');
+										if (!editorEl) return;
+										const r = editorEl.getBoundingClientRect();
+										const imgLeft = r.width / 2 - (imgSize.width * scale) / 2;
+										hitboxes = hitboxes.map((h) =>
+											h.id === currentHitboxModal
+												? { ...h, img_x: modalInputX, origin_x: modalInputX + imgLeft }
+												: h
+										);
+									}}
+								/>
+								<SquarePlus
+									size={18}
+									class="rt-step-icon"
+									onclick={() => {
+										const editorEl = document.querySelector('.canvas');
+										if (!editorEl) return;
+										const r = editorEl.getBoundingClientRect();
+										const imgLeft = r.width / 2 - (imgSize.width * scale) / 2;
+										modalInputX = modalInputX + 1;
+										hitboxes = hitboxes.map((h) =>
+											h.id === currentHitboxModal
+												? { ...h, img_x: modalInputX, origin_x: modalInputX + imgLeft }
+												: h
+										);
+									}}
+								/>
+							</div>
 							<Undo2
 								size={20}
 								color="#fff"
@@ -1048,24 +1097,73 @@
 
 						<div class="input-rows">
 							<label for="hitbox-y">Y:</label>
-							<input
-								id="hitbox-y"
-								type="number"
-								class="input-styles-modal"
-								step={1}
-								bind:value={modalInputY}
-								onchange={() => {
+							<div
+								class="rt-stepper"
+								onwheel={(e) => {
+									e.preventDefault();
 									const editorEl = document.querySelector('.canvas');
 									if (!editorEl) return;
 									const r = editorEl.getBoundingClientRect();
 									const imgTop = r.height / 2 - (imgSize.height * scale) / 2;
+									modalInputY = e.deltaY < 0 ? modalInputY + 1 : modalInputY - 1;
 									hitboxes = hitboxes.map((h) =>
 										h.id === currentHitboxModal
 											? { ...h, img_y: modalInputY, origin_y: modalInputY + imgTop }
 											: h
 									);
 								}}
-							/>
+							>
+								<SquareMinus
+									size={18}
+									class="rt-step-icon"
+									onclick={() => {
+										const editorEl = document.querySelector('.canvas');
+										if (!editorEl) return;
+										const r = editorEl.getBoundingClientRect();
+										const imgTop = r.height / 2 - (imgSize.height * scale) / 2;
+										modalInputY = modalInputY - 1;
+										hitboxes = hitboxes.map((h) =>
+											h.id === currentHitboxModal
+												? { ...h, img_y: modalInputY, origin_y: modalInputY + imgTop }
+												: h
+										);
+									}}
+								/>
+								<input
+									id="hitbox-y"
+									type="text"
+									class="rt-value-input"
+									step={1}
+									bind:value={modalInputY}
+									onchange={() => {
+										const editorEl = document.querySelector('.canvas');
+										if (!editorEl) return;
+										const r = editorEl.getBoundingClientRect();
+										const imgTop = r.height / 2 - (imgSize.height * scale) / 2;
+										hitboxes = hitboxes.map((h) =>
+											h.id === currentHitboxModal
+												? { ...h, img_y: modalInputY, origin_y: modalInputY + imgTop }
+												: h
+										);
+									}}
+								/>
+								<SquarePlus
+									size={18}
+									class="rt-step-icon"
+									onclick={() => {
+										const editorEl = document.querySelector('.canvas');
+										if (!editorEl) return;
+										const r = editorEl.getBoundingClientRect();
+										const imgTop = r.height / 2 - (imgSize.height * scale) / 2;
+										modalInputY = modalInputY + 1;
+										hitboxes = hitboxes.map((h) =>
+											h.id === currentHitboxModal
+												? { ...h, img_y: modalInputY, origin_y: modalInputY + imgTop }
+												: h
+										);
+									}}
+								/>
+							</div>
 							<Undo2
 								size={20}
 								color="#fff"
